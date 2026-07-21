@@ -1,146 +1,235 @@
-import { join } from '@std/path';
+import { expandGlob } from '@std/fs';
 
-import {
-    boolean,
-    command,
-    number,
-    positional,
-    string,
-} from '@drizzle-team/brocli';
+import { command, number, positional, string } from '@drizzle-team/brocli';
 
-import type { Track } from '@/lib/playlist-packer/mod.ts';
+import type {
+    PackPlaylistBucketsParameters,
+    Track,
+} from '@/lib/playlist-packer/mod.ts';
 import {
+    DEFAULT_SERIALIZED_PACK_PLAYLIST_BUCKETS_PARAMETERS,
     deserializePackPlaylistBucketsParameters,
+    ENERGY_CURVE_NAMES,
+    MIXING_RULE_NAMES,
     packPlaylistBuckets,
     serializeBucketsToPlaylist,
 } from '@/lib/playlist-packer/mod.ts';
+import { GLOB_AUDIO_FILES } from '@/lib/utilities/path.ts';
 
 import {
     ENTITY_AUDIO_FILE,
     ENTITY_MANAGER,
-    ENTITY_RADIO,
     withEntityManager,
 } from '@/shared/database/mod.ts';
 
-import { EXIT_CODES } from '@/cli/utilities/process.ts';
-
 const COMMAND_OPTIONS = {
-    radioIdentifier: positional('radio-identifier').desc(
-        'radio ID to lookup',
-    ).required(),
-
-    resolveName: boolean('resolve-name').desc(
-        'enables resolving the radio lookup by name rather than radio ID',
-    ).default(false),
+    directoryPath: positional('directory-path').desc(
+        'directory path to build a playlist from',
+    )
+        .required(),
 
     outputFile: string('output-file').desc(
         'sets the file to output the playlist to',
     ),
 
+    energyCurve: string('energy-curve').desc(
+        'sets the distribution curve forumla to determine track inclusion in a bucket',
+    ).enum(
+        // **HACK:** `enum` definition function expects at least one non-dynamic
+        // string element as the first element. Brocli is trying to enforce that
+        // there is at least one string element.
+        ...Object.values(ENERGY_CURVE_NAMES) as [string, ...string[]],
+    ).default(
+        DEFAULT_SERIALIZED_PACK_PLAYLIST_BUCKETS_PARAMETERS
+            .energyCurve,
+    ),
+
+    maxTracksPerBucket: number('max-tracks-per-bucket').desc(
+        'sets the maximum amount of tracks per bucket',
+    ).default(
+        DEFAULT_SERIALIZED_PACK_PLAYLIST_BUCKETS_PARAMETERS
+            .maxTracksPerBucket,
+    ),
+
+    minimumDuration: number('minimum-duration').desc(
+        'sets the minimum duration (in milliseconds) a track requires to be included',
+    ).default(0),
+
+    mixingRule: string('mixing-rule').desc(
+        'sets the sorting algorithm used to determine track distribution inside of buckets',
+    ).enum(
+        // **HACK:** See above note on `energyCurve`.
+        ...Object.values(MIXING_RULE_NAMES) as [string, ...string[]],
+    ).default(
+        DEFAULT_SERIALIZED_PACK_PLAYLIST_BUCKETS_PARAMETERS
+            .mixingRule,
+    ),
+
+    numberOfBuckets: number('number-of-buckets').desc(
+        'sets how many buckets the linked repositories of tracks are split into',
+    ).default(
+        DEFAULT_SERIALIZED_PACK_PLAYLIST_BUCKETS_PARAMETERS
+            .numberOfBuckets,
+    ),
+
+    pacingStrictnessArousal: number('pacing-strictness-arousal').desc(
+        'sets how closely the track distribution must follow the energy curve',
+    ).default(
+        DEFAULT_SERIALIZED_PACK_PLAYLIST_BUCKETS_PARAMETERS
+            .pacingStrictnessArousal,
+    ),
+
+    pacingStrictnessValence: number('pacing-strictness-valence').desc(
+        'sets how closely the track distribution must follow the vibe target',
+    ).default(
+        DEFAULT_SERIALIZED_PACK_PLAYLIST_BUCKETS_PARAMETERS
+            .pacingStrictnessValence,
+    ),
+
+    scoreFuzziness: number('score-fuzziness').desc(
+        "sets how exacting a track's scoring must match for inclusion by introducing randomness",
+    ).default(
+        DEFAULT_SERIALIZED_PACK_PLAYLIST_BUCKETS_PARAMETERS
+            .scoreFuzziness,
+    ),
+
+    seed: number('seed').desc(
+        'sets the seed used for the random number generator',
+    ).default(
+        Temporal.Now.zonedDateTimeISO().with({
+            hour: 0,
+            minute: 0,
+            second: 0,
+            millisecond: 0,
+        }).epochMilliseconds,
+    ),
+
     targetDurationPerBucket: number('target-duration-per-bucket').desc(
         'sets the max possible cumulative duration of individual buckets',
     ),
+
+    trackSpacing: number('track-spacing').desc(
+        'sets how much time (in milliseconds) is padded between each track in a bucket',
+    ).default(
+        DEFAULT_SERIALIZED_PACK_PLAYLIST_BUCKETS_PARAMETERS
+            .trackSpacing,
+    ),
+
+    vibeTarget: number('vibe-target').desc(
+        'sets how weighted tracks included from linked repositories towards positive or negative vibes are',
+    ).default(
+        DEFAULT_SERIALIZED_PACK_PLAYLIST_BUCKETS_PARAMETERS
+            .vibeTarget,
+    ),
 } as const;
+
+function determineTargetBucketDuration(numberOfBuckets: number): number {
+    return Temporal.Duration
+        .from({ days: 1 })
+        .total('milliseconds') / numberOfBuckets;
+}
 
 export default command({
     name: 'generate',
-    desc: 'Generates a M3U playlist based on a radio.',
+    desc: 'Generates a M3U playlist out of audio files in a directory.',
     options: COMMAND_OPTIONS,
 
     handler: withEntityManager(
         async (
             {
-                radioIdentifier,
-                resolveName,
+                directoryPath,
+                minimumDuration,
                 outputFile,
                 targetDurationPerBucket,
+                ...serializedPackPlaylistBucketsParameters
             },
         ) => {
-            const radio = await ENTITY_MANAGER.findOne(
-                ENTITY_RADIO,
-                resolveName
-                    ? {
-                        name: radioIdentifier,
-                    }
-                    : {
-                        radioID: parseInt(radioIdentifier),
-                    },
+            const {
+                energyCurve,
+                mixingRule,
+                maxTracksPerBucket,
+                numberOfBuckets,
+                pacingStrictnessArousal,
+                pacingStrictnessValence,
+                scoreFuzziness,
+                seed,
+                trackSpacing,
+                vibeTarget,
+            } = deserializePackPlaylistBucketsParameters(
+                serializedPackPlaylistBucketsParameters,
+            ) as Required<PackPlaylistBucketsParameters>;
+
+            const entries = await Array.fromAsync(
+                expandGlob(GLOB_AUDIO_FILES, {
+                    followSymlinks: true,
+                    root: directoryPath,
+                }),
             );
 
-            if (!radio) {
-                console.error(
-                    `Invalid value: value for the argument 'radio-identifier' was not found`,
-                );
+            const absoluteFilePaths = entries
+                .filter((entry) => entry.isFile)
+                .map((entry) => entry.path);
 
-                Deno.exit(EXIT_CODES.invalidOptions);
+            const audioFiles = await ENTITY_MANAGER.find(
+                ENTITY_AUDIO_FILE,
+                { absoluteFilePath: { $in: absoluteFilePaths } },
+                { populate: ['processedMetadata'] },
+            );
+
+            const tracks: Track[] = [];
+            let skippedCount = absoluteFilePaths.length;
+
+            for (const audioFile of audioFiles) {
+                if (!audioFile.processedMetadata) {
+                    continue;
+                }
+
+                const { audioProperties, musicalFeatures } =
+                    audioFile.processedMetadata;
+
+                if (audioProperties.duration < minimumDuration) {
+                    continue;
+                }
+
+                tracks.push({
+                    id: audioFile.absoluteFilePath,
+                    audioProperties,
+                    musicalFeatures,
+                });
+
+                skippedCount--;
             }
 
-            const {
-                name,
-                radioID,
-                packPlaylistBucketsParameters:
-                    serializedPackPlaylistBucketsParameters,
-            } = radio;
+            if (tracks.length === 0) {
+                console.log(
+                    '[LeafRadio] No files were included, skipping generation.',
+                );
 
-            const packPlaylistBucketsParameters =
-                serializedPackPlaylistBucketsParameters
-                    ? deserializePackPlaylistBucketsParameters(
-                        serializedPackPlaylistBucketsParameters,
-                    )
-                    : {};
+                return;
+            }
 
-            const audioFiles = await ENTITY_MANAGER.find(ENTITY_AUDIO_FILE, {
-                repository: {
-                    radios: {
-                        radioID: radioID,
-                    },
-                },
-            }, {
-                populate: ['musicalFeatures', 'repository'],
-            });
-
-            const tracks = audioFiles.map<Track>((audioFile) => {
-                const { musicalFeatures, relativeFilePath, repository } =
-                    audioFile;
-
-                const { directoryPath } = repository;
-                const { arousal, bpm, duration, key, valence } =
-                    musicalFeatures;
-
-                const fullFilePath = join(directoryPath, relativeFilePath);
-
-                return {
-                    id: fullFilePath,
-
-                    audioProperties: {
-                        duration,
-                    },
-
-                    musicalFeatures: {
-                        arousal: Number(arousal),
-                        bpm,
-                        key,
-                        valence: Number(valence),
-                    },
-                };
-            });
-
-            const { numberOfBuckets = 1 } = packPlaylistBucketsParameters;
+            console.log(`[LeafRadio] '${tracks.length}' files included.`);
+            console.log(
+                `[LeafRadio] '${skippedCount}' files skipped due to being unprocessed or under-duration.`,
+            );
 
             const { buckets } = packPlaylistBuckets({
-                ...packPlaylistBucketsParameters,
+                energyCurve,
+                maxTracksPerBucket,
+                mixingRule,
+                numberOfBuckets,
+                pacingStrictnessArousal,
+                pacingStrictnessValence,
+                scoreFuzziness,
+                seed,
                 targetDurationPerBucket: targetDurationPerBucket ??
-                    Temporal.Duration
-                            .from({ days: 1 })
-                            .total('milliseconds') / numberOfBuckets,
+                    determineTargetBucketDuration(numberOfBuckets),
                 tracks,
-                trackSpacing: 0,
+                trackSpacing,
+                vibeTarget,
             });
 
-            const serializedPlaylist = serializeBucketsToPlaylist(
-                name,
-                buckets,
-            );
+            const serializedPlaylist = serializeBucketsToPlaylist(buckets);
 
             if (outputFile) {
                 await Deno.writeTextFile(outputFile, serializedPlaylist);
