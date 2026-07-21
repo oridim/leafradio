@@ -17,9 +17,9 @@ import type { Bucket } from '@/lib/playlist-packer/types.ts';
 export const DEFAULT_SERIALIZED_PACK_PLAYLIST_BUCKETS_PARAMETERS =
     serializePackPlaylistBucketsParameters(
         DEFAULT_PACK_PLAYLIST_BUCKETS_PARAMETERS,
-    ) as Required<SerializedPackPlaylistBucketParameters>;
+    ) as Required<SerializedPackPlaylistBucketsParameters>;
 
-export type SerializedPackPlaylistBucketParameters =
+export type SerializedPackPlaylistBucketsParameters =
     & {
         readonly energyCurve?: EnergyCurveNames;
 
@@ -31,7 +31,7 @@ export type SerializedPackPlaylistBucketParameters =
     >;
 
 export function deserializePackPlaylistBucketsParameters(
-    serializedOptions: SerializedPackPlaylistBucketParameters,
+    serializedOptions: SerializedPackPlaylistBucketsParameters,
 ): PackPlaylistBucketsParameters {
     const { energyCurve, mixingRule, ...options } = serializedOptions;
 
@@ -44,7 +44,7 @@ export function deserializePackPlaylistBucketsParameters(
 
 export function serializePackPlaylistBucketsParameters(
     options: PackPlaylistBucketsParameters,
-): SerializedPackPlaylistBucketParameters {
+): SerializedPackPlaylistBucketsParameters {
     const { energyCurve, mixingRule, ...serializedOptions } = options;
 
     return Object.assign(
@@ -57,16 +57,9 @@ export function serializePackPlaylistBucketsParameters(
 }
 
 export function serializeBucketsToPlaylist(
-    name: string,
     buckets: Bucket[],
 ): string {
-    const playlist = Object.assign(
-        new M3uPlaylist(),
-        {
-            title: name,
-        },
-    );
-
+    const playlist = new M3uPlaylist();
     const { medias } = playlist;
 
     for (const { id: bucketID, tracks } of buckets) {
