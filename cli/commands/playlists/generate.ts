@@ -2,16 +2,15 @@ import { expandGlob } from '@std/fs';
 
 import { command, number, positional, string } from '@drizzle-team/brocli';
 
-import type {
-    PackPlaylistBucketsParameters,
-    Track,
-} from '@/lib/playlist-packer/mod.ts';
+import type { Track } from '@/lib/playlist-packer/mod.ts';
 import {
     DEFAULT_SERIALIZED_PACK_PLAYLIST_BUCKETS_PARAMETERS,
     deserializePackPlaylistBucketsParameters,
+    determineProfile,
     ENERGY_CURVE_NAMES,
     MIXING_RULE_NAMES,
     packPlaylistBuckets,
+    PROFILE_NAMES,
     serializeBucketsToPlaylist,
 } from '@/lib/playlist-packer/mod.ts';
 import { GLOB_AUDIO_FILES } from '@/lib/utilities/path.ts';
@@ -30,27 +29,28 @@ const COMMAND_OPTIONS = {
     outputFile: string('output-file')
         .desc('sets the file to output the playlist to'),
 
-    energyCurve: string('energy-curve')
+    profile: string()
         .desc(
-            'sets the distribution curve forumla to determine track inclusion in a bucket',
+            "sets the a preset profile's to use as a baseline",
         )
         .enum(
             // **HACK:** `enum` definition function expects at least one non-dynamic
             // string element as the first element. Brocli is trying to enforce that
             // there is at least one string element.
-            ...Object.values(ENERGY_CURVE_NAMES) as [string, ...string[]],
+            ...Object.values(PROFILE_NAMES) as [string, ...string[]],
+        ),
+
+    energyCurve: string('energy-curve')
+        .desc(
+            'sets the distribution curve forumla to determine track inclusion in a bucket',
         )
-        .default(
-            DEFAULT_SERIALIZED_PACK_PLAYLIST_BUCKETS_PARAMETERS
-                .energyCurve,
+        .enum(
+            // **HACK:** See above note on `profile`.
+            ...Object.values(ENERGY_CURVE_NAMES) as [string, ...string[]],
         ),
 
     maxTracksPerBucket: number('max-tracks-per-bucket')
-        .desc('sets the maximum amount of tracks per bucket')
-        .default(
-            DEFAULT_SERIALIZED_PACK_PLAYLIST_BUCKETS_PARAMETERS
-                .maxTracksPerBucket,
-        ),
+        .desc('sets the maximum amount of tracks per bucket'),
 
     minimumDuration: number('minimum-duration')
         .desc(
@@ -63,48 +63,28 @@ const COMMAND_OPTIONS = {
             'sets the sorting algorithm used to determine track distribution inside of buckets',
         )
         .enum(
-            // **HACK:** See above note on `energyCurve`.
+            // **HACK:** See above note on `profile`.
             ...Object.values(MIXING_RULE_NAMES) as [string, ...string[]],
-        )
-        .default(
-            DEFAULT_SERIALIZED_PACK_PLAYLIST_BUCKETS_PARAMETERS
-                .mixingRule,
         ),
 
     numberOfBuckets: number('number-of-buckets')
         .desc(
             'sets how many buckets the linked repositories of tracks are split into',
-        )
-        .default(
-            DEFAULT_SERIALIZED_PACK_PLAYLIST_BUCKETS_PARAMETERS
-                .numberOfBuckets,
         ),
 
     pacingStrictnessArousal: number('pacing-strictness-arousal')
         .desc(
             'sets how closely the track distribution must follow the energy curve',
-        )
-        .default(
-            DEFAULT_SERIALIZED_PACK_PLAYLIST_BUCKETS_PARAMETERS
-                .pacingStrictnessArousal,
         ),
 
     pacingStrictnessValence: number('pacing-strictness-valence')
         .desc(
             'sets how closely the track distribution must follow the vibe target',
-        )
-        .default(
-            DEFAULT_SERIALIZED_PACK_PLAYLIST_BUCKETS_PARAMETERS
-                .pacingStrictnessValence,
         ),
 
     scoreFuzziness: number('score-fuzziness')
         .desc(
             "sets how exacting a track's scoring must match for inclusion by introducing randomness",
-        )
-        .default(
-            DEFAULT_SERIALIZED_PACK_PLAYLIST_BUCKETS_PARAMETERS
-                .scoreFuzziness,
         ),
 
     seed: number('seed')
@@ -126,19 +106,11 @@ const COMMAND_OPTIONS = {
     trackSpacing: number('track-spacing')
         .desc(
             'sets how much time (in milliseconds) is padded between each track in a bucket',
-        )
-        .default(
-            DEFAULT_SERIALIZED_PACK_PLAYLIST_BUCKETS_PARAMETERS
-                .trackSpacing,
         ),
 
     vibeTarget: number('vibe-target')
         .desc(
             'sets how weighted tracks included from linked repositories towards positive or negative vibes are',
-        )
-        .default(
-            DEFAULT_SERIALIZED_PACK_PLAYLIST_BUCKETS_PARAMETERS
-                .vibeTarget,
         ),
 } as const;
 
@@ -158,25 +130,22 @@ export default command({
             {
                 directoryPath,
                 minimumDuration,
+                profile,
                 outputFile,
                 targetDurationPerBucket,
                 ...serializedPackPlaylistBucketsParameters
             },
         ) => {
-            const {
-                energyCurve,
-                mixingRule,
-                maxTracksPerBucket,
-                numberOfBuckets,
-                pacingStrictnessArousal,
-                pacingStrictnessValence,
-                scoreFuzziness,
-                seed,
-                trackSpacing,
-                vibeTarget,
-            } = deserializePackPlaylistBucketsParameters(
-                serializedPackPlaylistBucketsParameters,
-            ) as Required<PackPlaylistBucketsParameters>;
+            const parameters = {
+                ...(profile ? determineProfile(profile) : {}),
+                ...deserializePackPlaylistBucketsParameters(
+                    Object.fromEntries(
+                        Object
+                            .entries(serializedPackPlaylistBucketsParameters)
+                            .filter(([_key, value]) => value !== undefined),
+                    ),
+                ),
+            };
 
             const entries = await Array.fromAsync(
                 expandGlob(GLOB_AUDIO_FILES, {
@@ -233,19 +202,14 @@ export default command({
             );
 
             const { buckets } = packPlaylistBuckets({
-                energyCurve,
-                maxTracksPerBucket,
-                mixingRule,
-                numberOfBuckets,
-                pacingStrictnessArousal,
-                pacingStrictnessValence,
-                scoreFuzziness,
-                seed,
-                targetDurationPerBucket: targetDurationPerBucket ??
-                    determineTargetBucketDuration(numberOfBuckets),
+                ...parameters,
                 tracks,
-                trackSpacing,
-                vibeTarget,
+                targetDurationPerBucket: targetDurationPerBucket ??
+                    determineTargetBucketDuration(
+                        parameters.numberOfBuckets ??
+                            DEFAULT_SERIALIZED_PACK_PLAYLIST_BUCKETS_PARAMETERS
+                                .numberOfBuckets,
+                    ),
             });
 
             const serializedPlaylist = serializeBucketsToPlaylist(buckets);
