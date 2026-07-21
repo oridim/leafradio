@@ -1,3 +1,4 @@
+import type { ConsolaReporter, LogObject } from 'consola';
 import { createConsola, LogLevels } from 'consola';
 
 import { APPLICATION_NAME } from '@/shared/configuration/application.ts';
@@ -9,6 +10,45 @@ const LOGGER = createConsola({
 
     level: LogLevels.info,
 });
+
+const REPORTER_JSONL: ConsolaReporter = {
+    log(logObj: LogObject) {
+        const { args, date, tag, type } = logObj;
+
+        let message = '';
+        const metadata: Record<string, unknown> = {};
+
+        for (const arg of args) {
+            if (arg instanceof Error) {
+                metadata['error'] = {
+                    name: arg.name,
+                    message: arg.message,
+                    stack: arg.stack,
+                };
+            } else if (typeof arg === 'object' && arg !== null) {
+                Object.assign(metadata, arg);
+            } else {
+                message = message ? `${message} ${String(arg)}` : String(arg);
+            }
+        }
+
+        const entry = {
+            level: type,
+            time: date.toISOString(),
+            ...(tag ? { tag } : {}),
+            ...(message ? { msg: message } : {}),
+            ...metadata,
+        };
+
+        console.log(JSON.stringify(entry));
+    },
+};
+
+export const LOG_FORMATS = {
+    human: 'human',
+
+    jsonl: 'jsonl',
+} as const;
 
 export const LOG_LEVEL_NAMES = {
     debug: 'debug',
@@ -26,10 +66,14 @@ export const LOG_LEVEL_NAMES = {
     warn: 'warn',
 } as const;
 
+export type LogFormats = typeof LOG_FORMATS[keyof typeof LOG_FORMATS];
+
 export type LogLevelNames =
     typeof LOG_LEVEL_NAMES[keyof typeof LOG_LEVEL_NAMES];
 
 export interface ConfigureLoggerOptions {
+    readonly logFormat?: LogFormats;
+
     readonly logLevel?: string;
 
     readonly quiet?: boolean;
@@ -38,7 +82,13 @@ export interface ConfigureLoggerOptions {
 }
 
 export function configureLogger(options: ConfigureLoggerOptions): void {
-    const { logLevel, quiet, verbose } = options;
+    const { logFormat, logLevel, quiet, verbose } = options;
+
+    switch (logFormat) {
+        case LOG_FORMATS.jsonl:
+            LOGGER.setReporters([REPORTER_JSONL]);
+            break;
+    }
 
     if (quiet) {
         LOGGER.level = LogLevels.error;

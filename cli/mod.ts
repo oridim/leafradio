@@ -6,18 +6,30 @@ import {
 } from '@/shared/configuration/mod.ts';
 import { initDatabase } from '@/shared/database/mod.ts';
 
-import { configureLogger, LOG_LEVEL_NAMES } from '@/cli/utilities/logger.ts';
+import type { ConfigureLoggerOptions } from '@/cli/utilities/logger.ts';
+import {
+    configureLogger,
+    LOG_FORMATS,
+    LOG_LEVEL_NAMES,
+} from '@/cli/utilities/logger.ts';
 
 import COMMAND_PLAYLISTS from '@/cli/commands/playlists.ts';
 import COMMAND_SCAN from '@/cli/commands/scan.ts';
 
 const GLOBAL_OPTIONS = {
-    logLevel: string('log-level')
-        .desc('sets the log level verbosity explicitly')
+    logFormat: string('log-format')
+        .desc('sets the logging format')
         .enum(
             // **HACK:** `enum` definition function expects at least one non-dynamic
             // string element as the first element. Brocli is trying to enforce that
             // there is at least one string element.
+            ...Object.values(LOG_FORMATS) as [string, ...string[]],
+        ),
+
+    logLevel: string('log-level')
+        .desc('sets the logging level')
+        .enum(
+            // **HACK:** See above note on `output-format`.
             ...Object.values(LOG_LEVEL_NAMES) as [string, ...string[]],
         ),
 
@@ -45,7 +57,7 @@ run(
         hook: (event, _command, options) => {
             switch (event) {
                 case 'before':
-                    configureLogger(options);
+                    configureLogger(options as ConfigureLoggerOptions);
                     break;
             }
         },
