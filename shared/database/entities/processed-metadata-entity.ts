@@ -2,24 +2,21 @@ import type { InferEntity } from '@mikro-orm/core';
 
 import { defineEntity, p } from '@mikro-orm/core';
 
+import { MusicalFeatures } from '@/lib/music/mod.ts';
+import { AudioProperties } from '@/lib/playlist-packer/mod.ts';
+
 export type ProcessedMetadataEntity = InferEntity<
     typeof ENTITY_PROCESSED_METADATA
 >;
 
 export const ENTITY_PROCESSED_METADATA = defineEntity({
-    name: 'ProcessedMetadataEntity',
+    name: 'ProcessedMetadata',
 
     properties: {
         pcmHash: p.string().primary(),
 
-        arousal: p.double(),
+        audioProperties: p.json<AudioProperties>(),
 
-        bpm: p.integer(),
-
-        duration: p.integer(),
-
-        key: p.string(),
-
-        valence: p.double(),
+        musicalFeatures: p.json<MusicalFeatures>(),
     },
 });
