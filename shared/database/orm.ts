@@ -4,7 +4,7 @@ import { isAsyncGenerator, isSyncGenerator } from '@/lib/utilities/types.ts';
 
 import makeDatabaseConfiguration from '@/shared/configuration/database.ts';
 
-import { Migration20260719164007 } from '@/shared/database/migrations/Migration20260719164007.ts';
+import { Migration20260721160520 } from '@/shared/database/migrations/Migration20260721160520.ts';
 
 const DATABASE_CONFIGURATION = await makeDatabaseConfiguration();
 
@@ -20,7 +20,7 @@ export const DATABASE = await MikroORM.init({
 
     migrations: {
         migrationsList: [
-            Migration20260719164007,
+            Migration20260721160520,
         ],
     },
 });
