@@ -1,6 +1,12 @@
 import { createConsola, LogLevels } from 'consola';
 
+import { APPLICATION_NAME } from '@/shared/configuration/application.ts';
+
 const LOGGER = createConsola({
+    defaults: {
+        tag: APPLICATION_NAME,
+    },
+
     level: LogLevels.info,
 });
 
