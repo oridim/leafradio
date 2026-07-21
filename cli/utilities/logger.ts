@@ -12,10 +12,8 @@ const LOGGER = createConsola({
 });
 
 const REPORTER_JSONL: ConsolaReporter = {
-    log(logObj: LogObject) {
-        const { args, date, tag, type } = logObj;
-
-        let message = '';
+    log({ args, date, tag, type }: LogObject) {
+        const messageParts: string[] = [];
         const metadata: Record<string, unknown> = {};
 
         for (const arg of args) {
@@ -28,10 +26,11 @@ const REPORTER_JSONL: ConsolaReporter = {
             } else if (typeof arg === 'object' && arg !== null) {
                 Object.assign(metadata, arg);
             } else {
-                message = message ? `${message} ${String(arg)}` : String(arg);
+                messageParts.push(String(arg));
             }
         }
 
+        const message = messageParts.join(' ');
         const entry = {
             level: type,
             time: date.toISOString(),
