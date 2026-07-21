@@ -17,6 +17,7 @@ import {
 } from '@/lib/playlist-packer/mod.ts';
 import { formatPlaytimeDuration } from '@/lib/utilities/datetime.ts';
 import { GLOB_AUDIO_FILES } from '@/lib/utilities/path.ts';
+import { truncateCenter } from '@/lib/utilities/string.ts';
 
 import {
     ENTITY_AUDIO_FILE,
@@ -166,7 +167,7 @@ function formatOutput(outputFormat: OutputFormats, buckets: Bucket[]): string {
                     ) => [
                         bucketID,
                         formatPlaytimeDuration(duration),
-                        absoluteFilePath,
+                        truncateCenter(absoluteFilePath, 64 + 32 + 16),
                     ]),
                 )
                 .border(true)
