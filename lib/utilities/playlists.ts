@@ -1,6 +1,6 @@
 import type { M3uPlaylist } from 'm3u-parser-generator';
 
-export interface NowPlayingInfo {
+export interface NowPlayingTrack {
     readonly filePath: string;
 
     readonly group?: string;
@@ -12,10 +12,10 @@ export interface NowPlayingInfo {
     readonly trackDuration: number;
 }
 
-export function determineNowPlaying(
+export function determineNowPlayingTrack(
     playlist: M3uPlaylist,
     zonedDateTime: Temporal.ZonedDateTime,
-): NowPlayingInfo | null {
+): NowPlayingTrack | null {
     const totalDuration = playlist
         .medias
         .reduce(

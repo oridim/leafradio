@@ -1,19 +1,41 @@
-import { command, number, positional } from '@drizzle-team/brocli';
+import { Table } from '@cliffy/table';
+import { command, number, positional, string } from '@drizzle-team/brocli';
+import type { M3uPlaylist } from 'm3u-parser-generator';
 import { M3uParser } from 'm3u-parser-generator';
 
 import {
     formatPlaytimeDuration,
     getZonedDateTimeFromEpochMilliseconds,
 } from '@/lib/utilities/datetime.ts';
-import { determineNowPlaying as determineNowPlayingTrack } from '@/lib/utilities/playlists.ts';
+import type { NowPlayingTrack } from '@/lib/utilities/playlists.ts';
+import { determineNowPlayingTrack } from '@/lib/utilities/playlists.ts';
 import { EXIT_CODES } from '@/cli/utilities/process.ts';
+import { truncateCenter } from '@/lib/utilities/string.ts';
 
 import LOGGER from '@/cli/utilities/logger.ts';
+
+const OUTPUT_FORMATS = {
+    human: 'human',
+
+    json: 'json',
+} as const;
+
+type OutputFormats = typeof OUTPUT_FORMATS[keyof typeof OUTPUT_FORMATS];
 
 const COMMAND_OPTIONS = {
     playlistFile: positional('playlist-file')
         .desc('path to the m3u or m3u8 playlist file')
         .required(),
+
+    outputFormat: string('output-format')
+        .desc('sets the format to output the playlist as')
+        .enum(
+            // **HACK:** `enum` definition function expects at least one non-dynamic
+            // string element as the first element. Brocli is trying to enforce that
+            // there is at least one string element.
+            ...Object.values(OUTPUT_FORMATS) as [string, ...string[]],
+        )
+        .default(OUTPUT_FORMATS.human),
 
     timestamp: number('timestamp')
         .desc(
@@ -26,13 +48,49 @@ const COMMAND_OPTIONS = {
         ),
 } as const;
 
+function formatOutput(
+    outputFormat: OutputFormats,
+    playlist: M3uPlaylist,
+    nowPlayingTrack: NowPlayingTrack,
+): string {
+    const { filePath, index, group, seekTime, trackDuration } = nowPlayingTrack;
+
+    const bucketID = group ? group.slice(7) : null;
+    const trackID = index + 1;
+    const { length: trackCount } = playlist.medias;
+
+    switch (outputFormat) {
+        case OUTPUT_FORMATS.human:
+            return new Table()
+                .header(['Bucket ID', 'Track ID', 'Position', 'File Path'])
+                .body(
+                    [
+                        [
+                            bucketID ?? 'N/A',
+                            `${trackID} / ${trackCount}`,
+                            [
+                                formatPlaytimeDuration(seekTime),
+                                formatPlaytimeDuration(trackDuration),
+                            ].join(' / '),
+                            truncateCenter(filePath, 64 + 32 + 16),
+                        ],
+                    ],
+                )
+                .border(true)
+                .toString();
+
+        case OUTPUT_FORMATS.json:
+            return ''; // todo
+    }
+}
+
 export default command({
     name: 'now-playing',
     desc:
         'Determines the currently playing track and seek position based on the time of day.',
     options: COMMAND_OPTIONS,
 
-    handler: async ({ playlistFile, timestamp }) => {
+    handler: async ({ playlistFile, outputFormat, timestamp }) => {
         let playlistText: string;
 
         try {
@@ -71,24 +129,12 @@ export default command({
             Deno.exit(EXIT_CODES.invalidValue);
         }
 
-        console.log('Now Playing Status:');
-        console.log(`  File:      ${nowPlayingTrack.filePath}`);
-        console.log(
-            `  Track:     ${
-                nowPlayingTrack.index + 1
-            } of ${playlist.medias.length}`,
+        const formattedOutput = formatOutput(
+            outputFormat as OutputFormats,
+            playlist,
+            nowPlayingTrack,
         );
 
-        if (nowPlayingTrack.group) {
-            console.log(`  Bucket:    ${nowPlayingTrack.group}`);
-        }
-
-        console.log(
-            `  Position:  ${
-                formatPlaytimeDuration(nowPlayingTrack.seekTime)
-            } / ${formatPlaytimeDuration(nowPlayingTrack.trackDuration)} (${
-                Math.floor(nowPlayingTrack.seekTime / 1000)
-            }s / ${Math.floor(nowPlayingTrack.trackDuration / 1000)}s)`,
-        );
+        console.log(formattedOutput);
     },
 });
