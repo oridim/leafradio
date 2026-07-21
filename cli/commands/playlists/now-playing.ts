@@ -1,3 +1,5 @@
+import * as CSV from '@std/csv';
+
 import { Table } from '@cliffy/table';
 import { command, number, positional, string } from '@drizzle-team/brocli';
 import type { M3uPlaylist } from 'm3u-parser-generator';
@@ -15,6 +17,8 @@ import { truncateCenter } from '@/lib/utilities/string.ts';
 import LOGGER from '@/cli/utilities/logger.ts';
 
 const OUTPUT_FORMATS = {
+    csv: 'csv',
+
     human: 'human',
 
     json: 'json',
@@ -60,6 +64,28 @@ function formatOutput(
     const { length: trackCount } = playlist.medias;
 
     switch (outputFormat) {
+        case OUTPUT_FORMATS.csv:
+            return CSV.stringify(
+                [{
+                    bucketID: bucketID ?? '',
+                    filePath,
+                    seekTime,
+                    trackCount,
+                    trackDuration,
+                    trackID,
+                }],
+                {
+                    columns: [
+                        'bucketID',
+                        'trackID',
+                        'trackCount',
+                        'seekTime',
+                        'trackDuration',
+                        'filePath',
+                    ],
+                },
+            );
+
         case OUTPUT_FORMATS.human:
             return new Table()
                 .header(['Bucket ID', 'Track ID', 'Position', 'File Path'])
@@ -80,7 +106,14 @@ function formatOutput(
                 .toString();
 
         case OUTPUT_FORMATS.json:
-            return ''; // todo
+            return JSON.stringify({
+                bucketID,
+                trackID,
+                trackCount,
+                seekTime,
+                trackDuration,
+                filePath,
+            });
     }
 }
 
