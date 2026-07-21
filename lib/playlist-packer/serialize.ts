@@ -11,7 +11,13 @@ import {
     determineMixingRuleName,
 } from '@/lib/playlist-packer/mixing-rules.ts';
 import type { PackPlaylistBucketsParameters } from '@/lib/playlist-packer/options.ts';
+import { DEFAULT_PACK_PLAYLIST_BUCKETS_PARAMETERS } from '@/lib/playlist-packer/mod.ts';
 import type { Bucket } from '@/lib/playlist-packer/types.ts';
+
+export const DEFAULT_SERIALIZED_PACK_PLAYLIST_BUCKETS_PARAMETERS =
+    serializePackPlaylistBucketsParameters(
+        DEFAULT_PACK_PLAYLIST_BUCKETS_PARAMETERS,
+    ) as Required<SerializedPackPlaylistBucketParameters>;
 
 export type SerializedPackPlaylistBucketParameters =
     & {
