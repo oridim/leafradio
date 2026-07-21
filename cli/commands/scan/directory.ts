@@ -23,8 +23,8 @@ const COMMAND_OPTIONS = {
 } as const;
 
 export default command({
-    name: 'repository',
-    desc: "Scans a music repository's audio files.",
+    name: 'directory',
+    desc: 'Scans a directory of audio files to preprocess them.',
     options: COMMAND_OPTIONS,
 
     handler: withEntityManager(async ({ identifier, resolveDirectoryPath }) => {
