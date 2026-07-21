@@ -1,6 +1,7 @@
 /// <reference no-default-lib="true" />
 /// <reference lib="deno.worker" />
 
+import { decodeAudioFile } from '@/lib/utilities/audio.ts';
 import { digest } from '@/lib/utilities/crypto.ts';
 import type { WorkerRunFunction } from '@/lib/workers/mod.ts';
 
@@ -15,8 +16,8 @@ export interface HashWorkerOutput {
 export default (async (input) => {
     const { filePath } = input;
 
-    using file = await Deno.open(filePath);
-    const pcmHash = await digest('BLAKE3', file.readable);
+    const audioBuffer = await decodeAudioFile(filePath);
+    const pcmHash = await digest('BLAKE3', audioBuffer.audioData);
 
     return {
         pcmHash,
