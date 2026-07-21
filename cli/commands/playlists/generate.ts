@@ -1,6 +1,7 @@
 import * as CSV from '@std/csv';
 import { expandGlob } from '@std/fs';
 
+import { Table } from '@cliffy/table';
 import { command, number, positional, string } from '@drizzle-team/brocli';
 import { M3uMedia, M3uPlaylist } from 'm3u-parser-generator';
 
@@ -14,6 +15,7 @@ import {
     packPlaylistBuckets,
     PROFILE_NAMES,
 } from '@/lib/playlist-packer/mod.ts';
+import { formatPlaytimeDuration } from '@/lib/utilities/datetime.ts';
 import { GLOB_AUDIO_FILES } from '@/lib/utilities/path.ts';
 
 import {
@@ -26,6 +28,8 @@ import LOGGER from '@/cli/utilities/logger.ts';
 
 const OUTPUT_FORMATS = {
     csv: 'csv',
+
+    human: 'human',
 
     json: 'json',
 
@@ -50,7 +54,7 @@ const COMMAND_OPTIONS = {
             // there is at least one string element.
             ...Object.values(OUTPUT_FORMATS) as [string, ...string[]],
         )
-        .default(OUTPUT_FORMATS.m3u),
+        .default(OUTPUT_FORMATS.human),
 
     profile: string()
         .desc(
@@ -153,6 +157,21 @@ function formatOutput(outputFormat: OutputFormats, buckets: Bucket[]): string {
                 columns: ['bucketID', 'duration', 'absoluteFilePath'],
             });
 
+        case OUTPUT_FORMATS.human:
+            return new Table()
+                .header(['Bucket ID', 'Duration', 'Absolute File Path'])
+                .body(
+                    collectedTracks.map((
+                        { absoluteFilePath, bucketID, duration },
+                    ) => [
+                        bucketID,
+                        formatPlaytimeDuration(duration),
+                        absoluteFilePath,
+                    ]),
+                )
+                .border(true)
+                .toString();
+
         case OUTPUT_FORMATS.json:
             return JSON.stringify(collectedTracks);
 
@@ -178,7 +197,7 @@ function formatOutput(outputFormat: OutputFormats, buckets: Bucket[]): string {
 
 export default command({
     name: 'generate',
-    desc: 'Generates a M3U playlist out of audio files in a directory.',
+    desc: 'Generates a playlist out of audio files in a directory.',
     options: COMMAND_OPTIONS,
 
     handler: withEntityManager(
