@@ -12,7 +12,7 @@ import {
     strictTempoMixingRule,
     vibeTransitionMixingRule,
 } from '@/lib/playlist-packer/mixing-rules.ts';
-import { PackPlaylistBucketsParameters } from '@/lib/playlist-packer/pack-playlists.ts';
+import type { PackPlaylistBucketsParameters } from '@/lib/playlist-packer/options.ts';
 
 // Drives high energy with a darker, intense mood for letting off steam.
 export const PROFILE_AGGRESSIVE_RELEASE = {

@@ -10,7 +10,7 @@ import {
     determineMixingRule,
     determineMixingRuleName,
 } from '@/lib/playlist-packer/mixing-rules.ts';
-import type { PackPlaylistBucketsParameters } from '@/lib/playlist-packer/pack-playlists.ts';
+import type { PackPlaylistBucketsParameters } from '@/lib/playlist-packer/options.ts';
 import type { Bucket } from '@/lib/playlist-packer/types.ts';
 
 export type SerializedPackPlaylistBucketParameters =
