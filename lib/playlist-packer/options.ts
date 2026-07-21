@@ -4,7 +4,7 @@ import type { MixingRuleFunction } from '@/lib/playlist-packer/mixing-rules.ts';
 import { harmonicMixingRule } from '@/lib/playlist-packer/mixing-rules.ts';
 import type { Track } from '@/lib/playlist-packer/types.ts';
 
-export const DEFAULT_PACK_PLAYLIST_BUCKETS_OPTIONS = {
+export const DEFAULT_PACK_PLAYLIST_BUCKETS_PARAMETERS = {
     energyCurve: waveEnergyCurve,
     maxTracksPerBucket: 0,
     mixingRule: harmonicMixingRule,

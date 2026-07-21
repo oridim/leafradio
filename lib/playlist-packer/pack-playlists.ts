@@ -2,7 +2,7 @@ import type { RandomNumberGenerator } from '@/lib/utilities/random.ts';
 import { makeRandomNumberGenerator } from '@/lib/utilities/random.ts';
 
 import type { PackPlaylistBucketsOptions } from '@/lib/playlist-packer/options.ts';
-import { DEFAULT_PACK_PLAYLIST_BUCKETS_OPTIONS } from '@/lib/playlist-packer/mod.ts';
+import { DEFAULT_PACK_PLAYLIST_BUCKETS_PARAMETERS } from '@/lib/playlist-packer/mod.ts';
 import {
     calculateSuitabilityScore,
     calculateTargetArousal,
@@ -101,7 +101,7 @@ export function packPlaylistBuckets(
         tracks,
         trackSpacing,
         vibeTarget,
-    } = { ...DEFAULT_PACK_PLAYLIST_BUCKETS_OPTIONS, ...options };
+    } = { ...DEFAULT_PACK_PLAYLIST_BUCKETS_PARAMETERS, ...options };
 
     const randomGenerator = makeRandomNumberGenerator(seed);
     const buckets: Bucket[] = [];
