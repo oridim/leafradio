@@ -1,6 +1,7 @@
 import { expandGlob } from '@std/fs';
 
 import type { PipelineStep } from '@/lib/utilities/pipeline.ts';
+import { GLOB_AUDIO_FILES } from '@/lib/utilities/path.ts';
 import { makePipeline } from '@/lib/utilities/pipeline.ts';
 import { makeWorkerPool } from '@/lib/workers/mod.ts';
 
@@ -20,8 +21,6 @@ import {
     FILE_AUDIO_PROCESSING_WORKER,
     FILE_HASH_WORKER,
 } from '@/shared/workers/mod.ts';
-
-const GLOB_AUDIO_FILES = '**/*.{aac,flac,m4a,mp3,ogg,wav}';
 
 const WORKER_POOL = makeWorkerPool({
     maximumWorkers: Math.floor(navigator.hardwareConcurrency * 0.75) || 1,
