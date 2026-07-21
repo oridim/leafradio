@@ -90,14 +90,10 @@ const COMMAND_OPTIONS = {
     seed: number('seed')
         .desc('sets the seed used for the random number generator')
         .default(
-            Temporal.Now.zonedDateTimeISO().with({
-                hour: 0,
-                minute: 0,
-                second: 0,
-                millisecond: 0,
-                microsecond: 0,
-                nanosecond: 0,
-            }).epochMilliseconds,
+            Temporal.Now
+                .zonedDateTimeISO()
+                .startOfDay()
+                .epochMilliseconds,
         ),
 
     targetDurationPerBucket: number('target-duration-per-bucket')
