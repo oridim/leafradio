@@ -1,0 +1,18 @@
+.badge {
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: var(--size-relative-2);
+    padding: var(--size-relative-1) var(--size-relative-3);
+
+    background-color: var(--color--action);
+    color: var(--color--contrast);
+    font-family: var(--font--interface);
+    font-size: calc(var(--size-relative-3) * 0.75);
+    font-weight: var(--font-weight-9);
+
+    text-decoration: none;
+    white-space: nowrap;
+}

@@ -1,0 +1,87 @@
+.button {
+    --color--action: var(--color--text);
+
+    --default--background-color: transparent;
+    --default--border-color: transparent;
+    --default--color: var(--color--action);
+
+    --hover--background-color: color-mix(
+        in oklab,
+        var(--color--action) 15%,
+        transparent
+    );
+    --hover--border-color: color-mix(
+        in oklab,
+        var(--color--action) 25%,
+        transparent
+    );
+    --hover--color: var(--color--action);
+
+    --active--background-color: var(--color--action);
+    --active--border-color: color-mix(
+        in oklab,
+        var(--color--action) 50%,
+        var(--color--surface)
+    );
+    --active--color: var(--color--contrast);
+
+    -webkit-tap-highlight-color: transparent;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: var(--size-relative-2);
+    padding: var(--size-relative-2) var(--size-relative-5);
+
+    background-color: var(--default--background-color);
+    border: transparent var(--size-relative-1) solid;
+    color: var(--default--color);
+    font-family: var(--font--interface);
+    font-size: var(--size-relative-5);
+    font-weight: var(--font-weight-6);
+
+    text-decoration: none;
+    white-space: nowrap;
+
+    cursor: pointer;
+
+    &:is(:disabled, [aria-disabled]) {
+        cursor: not-allowed;
+
+        opacity: 0.5;
+    }
+
+    &:not(:disabled, [aria-disabled], .is-active):hover {
+        background-color: var(--hover--background-color);
+        color: var(--hover--color);
+
+        cursor: pointer;
+    }
+
+    &:not(:disabled, [aria-disabled]):is(:active, .is-active) {
+        background-color: var(--active--background-color);
+        color: var(--active--color);
+    }
+
+    &.is-icon {
+        padding: var(--size-relative-2);
+    }
+
+    &.is-bordered {
+        border-color: var(--default--border-color);
+
+        &:not(:disabled, [aria-disabled], .is-active):hover {
+            border-color: var(--hover--border-color);
+        }
+
+        &:not(:disabled, [aria-disabled]):is(:active, .is-active) {
+            border-color: var(--active--border-color);
+        }
+    }
+
+    &.is-subtle {
+        color: var(--color--text);
+    }
+}

@@ -1,0 +1,27 @@
+.layout {
+    display: flex;
+
+    & > .sidebar {
+        inline-size: var(--size-14);
+    }
+}
+
+.layout--content {
+    --color--contrast: var(--surface-2);
+    --color--surface: var(--surface-1);
+    --color--text: var(--text-1);
+
+    --default--background-color: var(--color--surface);
+    --default--color: var(--color-text);
+
+    flex-grow: 1;
+
+    background-color: var(--default--background-color);
+    color: var(--default--color);
+
+    padding: var(--size-3) var(--size-4);
+
+    max-block-size: 100%;
+
+    overflow: hidden auto;
+}

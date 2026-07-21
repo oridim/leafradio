@@ -1,0 +1,54 @@
+{
+    "deno.enable": true,
+    "deno.lint": true,
+
+    "[css]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "denoland.vscode-deno"
+    },
+
+    "[html]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "denoland.vscode-deno"
+    },
+
+    "[javascript]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "denoland.vscode-deno"
+    },
+
+    "[javascriptreact]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "denoland.vscode-deno"
+    },
+
+    "[json]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "denoland.vscode-deno"
+    },
+
+    "[jsonc]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "denoland.vscode-deno"
+    },
+
+    "[markdown]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "denoland.vscode-deno"
+    },
+
+    "[typescript]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "denoland.vscode-deno"
+    },
+
+    "[typescriptreact]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "denoland.vscode-deno"
+    },
+
+    "[yaml]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "denoland.vscode-deno"
+    }
+}

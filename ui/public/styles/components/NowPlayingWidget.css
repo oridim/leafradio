@@ -1,0 +1,78 @@
+.now-playing-widget {
+    --color--contrast: var(--surface-2);
+    --color--surface: var(--surface-1);
+    --color--text: var(--text-1);
+
+    display: flex;
+
+    padding-inline-end: var(--size-relative-5);
+
+    gap: var(--spacing--horizontal);
+
+    background-color: var(--color--surface);
+    border: color-mix(
+        in oklab,
+        var(--color--text) 15%,
+        var(--color--surface)
+    ) var(--border-size-1) solid;
+    color: var(--color-text);
+    font-family: var(--font--interface);
+
+    text-decoration: none;
+
+    &:hover {
+        border-color: color-mix(
+            in oklab,
+            var(--color--text) 50%,
+            var(--color--surface)
+        );
+    }
+
+    &:active {
+        border-color: var(--color--text);
+    }
+}
+
+.now-playing-widget--cover {
+    position: relative;
+
+    background-color: var(--surface-4);
+    color: var(--text-2);
+
+    aspect-ratio: 1 / 1;
+    block-size: var(--size-8);
+    & > :is(img, svg) {
+        position: absolute;
+    }
+
+    & > img {
+        inset: 0;
+    }
+
+    & > svg {
+        top: 50%;
+        left: 50%;
+
+        aspect-ratio: 1 / 1;
+        block-size: var(--size-6);
+
+        transform: translate(-50%, -50%);
+    }
+}
+
+.now-playing-widget--details {
+    display: flex;
+    flex-direction: column;
+
+    justify-content: space-evenly;
+}
+
+.now-playing-widget--indicator {
+    font-family: var(--font--monospace);
+    font-size: var(--font-size-00);
+}
+
+.now-playing-widget--title {
+    font-size: var(--font-size-0);
+    font-weight: var(--font-weight-6);
+}

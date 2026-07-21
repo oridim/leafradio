@@ -1,0 +1,562 @@
+{
+  "namespaces": [],
+  "tables": [
+    {
+      "name": "audio_file",
+      "columns": {
+        "audio_file_id": {
+          "name": "audio_file_id",
+          "type": "integer",
+          "unsigned": false,
+          "autoincrement": true,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
+        "last_modified": {
+          "name": "last_modified",
+          "type": "integer",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
+        "musical_features_musical_features_hash": {
+          "name": "musical_features_musical_features_hash",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "relative_file_path": {
+          "name": "relative_file_path",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": true,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "repository_repository_id": {
+          "name": "repository_repository_id",
+          "type": "integer",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        }
+      },
+      "indexes": [
+        {
+          "columnNames": [
+            "musical_features_musical_features_hash"
+          ],
+          "composite": false,
+          "constraint": false,
+          "keyName": "audio_file_musical_features_musical_features_hash_index",
+          "primary": false,
+          "unique": false
+        },
+        {
+          "columnNames": [
+            "relative_file_path",
+            "repository_repository_id"
+          ],
+          "composite": true,
+          "constraint": true,
+          "keyName": "audio_file_relative_file_path_repository_repository_id_unique",
+          "primary": false,
+          "unique": true
+        },
+        {
+          "columnNames": [
+            "repository_repository_id"
+          ],
+          "composite": false,
+          "constraint": false,
+          "keyName": "audio_file_repository_repository_id_index",
+          "primary": false,
+          "unique": false
+        },
+        {
+          "columnNames": [
+            "audio_file_id"
+          ],
+          "composite": false,
+          "constraint": true,
+          "keyName": "primary",
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "triggers": [],
+      "foreignKeys": {
+        "audio_file_musical_features_musical_features_hash_foreign": {
+          "columnNames": [
+            "musical_features_musical_features_hash"
+          ],
+          "constraintName": "audio_file_musical_features_musical_features_hash_foreign",
+          "localTableName": "audio_file",
+          "referencedColumnNames": [
+            "musical_features_hash"
+          ],
+          "referencedTableName": "musical_features"
+        },
+        "audio_file_repository_repository_id_foreign": {
+          "columnNames": [
+            "repository_repository_id"
+          ],
+          "constraintName": "audio_file_repository_repository_id_foreign",
+          "localTableName": "audio_file",
+          "referencedColumnNames": [
+            "repository_id"
+          ],
+          "referencedTableName": "repository",
+          "deleteRule": "cascade"
+        }
+      },
+      "comment": null
+    },
+    {
+      "name": "musical_features",
+      "columns": {
+        "arousal": {
+          "name": "arousal",
+          "type": "double",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "double"
+        },
+        "bpm": {
+          "name": "bpm",
+          "type": "integer",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
+        "duration": {
+          "name": "duration",
+          "type": "integer",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
+        "key": {
+          "name": "key",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "musical_features_hash": {
+          "name": "musical_features_hash",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "valence": {
+          "name": "valence",
+          "type": "double",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "double"
+        }
+      },
+      "indexes": [
+        {
+          "columnNames": [
+            "musical_features_hash"
+          ],
+          "composite": false,
+          "constraint": true,
+          "keyName": "primary",
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "triggers": [],
+      "foreignKeys": {},
+      "comment": null
+    },
+    {
+      "name": "radio",
+      "columns": {
+        "name": {
+          "name": "name",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "pack_playlist_buckets_parameters": {
+          "name": "pack_playlist_buckets_parameters",
+          "type": "json",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "json"
+        },
+        "radio_id": {
+          "name": "radio_id",
+          "type": "integer",
+          "unsigned": false,
+          "autoincrement": true,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        }
+      },
+      "indexes": [
+        {
+          "columnNames": [
+            "radio_id"
+          ],
+          "composite": false,
+          "constraint": true,
+          "keyName": "primary",
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "triggers": [],
+      "foreignKeys": {},
+      "comment": null
+    },
+    {
+      "name": "radio_repositories",
+      "columns": {
+        "radio_radio_id": {
+          "name": "radio_radio_id",
+          "type": "integer",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
+        "repository_repository_id": {
+          "name": "repository_repository_id",
+          "type": "integer",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        }
+      },
+      "indexes": [
+        {
+          "columnNames": [
+            "radio_radio_id",
+            "repository_repository_id"
+          ],
+          "composite": true,
+          "constraint": true,
+          "keyName": "primary",
+          "primary": true,
+          "unique": true
+        },
+        {
+          "columnNames": [
+            "radio_radio_id"
+          ],
+          "composite": false,
+          "constraint": false,
+          "keyName": "radio_repositories_radio_radio_id_index",
+          "primary": false,
+          "unique": false
+        },
+        {
+          "columnNames": [
+            "repository_repository_id"
+          ],
+          "composite": false,
+          "constraint": false,
+          "keyName": "radio_repositories_repository_repository_id_index",
+          "primary": false,
+          "unique": false
+        }
+      ],
+      "checks": [],
+      "triggers": [],
+      "foreignKeys": {
+        "radio_repositories_radio_radio_id_foreign": {
+          "columnNames": [
+            "radio_radio_id"
+          ],
+          "constraintName": "radio_repositories_radio_radio_id_foreign",
+          "localTableName": "radio_repositories",
+          "referencedColumnNames": [
+            "radio_id"
+          ],
+          "referencedTableName": "radio",
+          "updateRule": "cascade",
+          "deleteRule": "cascade"
+        },
+        "radio_repositories_repository_repository_id_foreign": {
+          "columnNames": [
+            "repository_repository_id"
+          ],
+          "constraintName": "radio_repositories_repository_repository_id_foreign",
+          "localTableName": "radio_repositories",
+          "referencedColumnNames": [
+            "repository_id"
+          ],
+          "referencedTableName": "repository",
+          "updateRule": "cascade",
+          "deleteRule": "cascade"
+        }
+      },
+      "comment": null
+    },
+    {
+      "name": "repository",
+      "columns": {
+        "directory_path": {
+          "name": "directory_path",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": true,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "repository_id": {
+          "name": "repository_id",
+          "type": "integer",
+          "unsigned": false,
+          "autoincrement": true,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
+        "scan_state": {
+          "name": "scan_state",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "'unscanned'",
+          "comment": null,
+          "collation": null,
+          "enumItems": [
+            "badScan",
+            "notScanning",
+            "interruptedScan",
+            "processingFiles",
+            "scanningDirectory",
+            "unscanned"
+          ],
+          "mappedType": "enum"
+        }
+      },
+      "indexes": [
+        {
+          "columnNames": [
+            "repository_id"
+          ],
+          "composite": false,
+          "constraint": true,
+          "keyName": "primary",
+          "primary": true,
+          "unique": true
+        },
+        {
+          "columnNames": [
+            "directory_path"
+          ],
+          "composite": false,
+          "constraint": true,
+          "keyName": "repository_directory_path_unique",
+          "primary": false,
+          "unique": true
+        }
+      ],
+      "checks": [
+        {
+          "name": "repository_scan_state_check",
+          "expression": "`scan_state` in ('badScan', 'notScanning', 'interruptedScan', 'processingFiles', 'scanningDirectory', 'unscanned')",
+          "definition": "check (`scan_state` in ('badScan', 'notScanning', 'interruptedScan', 'processingFiles', 'scanningDirectory', 'unscanned'))",
+          "columnName": "scan_state"
+        }
+      ],
+      "triggers": [],
+      "foreignKeys": {},
+      "comment": null
+    }
+  ],
+  "views": [],
+  "nativeEnums": {}
+}

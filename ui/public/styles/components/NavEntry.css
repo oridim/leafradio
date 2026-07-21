@@ -1,0 +1,86 @@
+.nav-entry {
+    --color--contrast: var(--surface-2);
+    --color--surface: var(--surface-1);
+    --color--text: var(--text-1);
+
+    contain: layout;
+
+    display: flex;
+
+    background-color: transparent;
+    border: transparent var(--border-size-1) solid;
+    font-family: var(--font--interface);
+
+    padding: var(--size-1) var(--size-2);
+
+    &:hover {
+        background-color: var(--color--surface);
+        border: color-mix(
+            in oklab,
+            var(--color--text) 15%,
+            var(--color--surface)
+        ) var(--border-size-1) solid;
+        color: var(--color--text);
+
+        gap: var(--size-1);
+    }
+}
+
+.nav-entry--details {
+    display: flex;
+    flex-direction: column;
+
+    gap: var(--spacing--vertical--reduce);
+
+    overflow: hidden;
+}
+
+.nav-entry--sub-text {
+    font-family: var(--font--monospace);
+    font-size: var(--font-size-0);
+}
+
+.nav-entry--text {
+    display: flex;
+
+    align-items: center;
+
+    gap: var(--spacing--horizontal--reduce);
+
+    font-weight: var(--font-weight-6);
+}
+
+.nav-entry--text > .nav-entry--text--label, .nav-entry--sub-text {
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.nav-entry--actions {
+    display: flex;
+
+    flex-grow: 1;
+    flex-shrink: 0;
+
+    align-items: center;
+    justify-content: end;
+
+    max-inline-size: 0;
+
+    gap: var(--size-1);
+
+    font-size: var(--font-size-0);
+
+    pointer-events: none;
+    opacity: 0;
+}
+
+.nav-entry:hover > .nav-entry--actions {
+    max-inline-size: revert;
+
+    opacity: 1;
+
+    & > * {
+        pointer-events: all;
+    }
+}

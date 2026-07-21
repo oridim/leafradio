@@ -1,0 +1,21 @@
+.surface {
+    --color--contrast: var(--surface-2);
+    --color--surface: var(--surface-1);
+    --color--text: var(--text-1);
+
+    --default--background-color: var(--color--surface);
+    --default--border-color: color-mix(
+        in oklab,
+        var(--color--text) 15%,
+        var(--color--surface)
+    );
+    --default--color: var(--color-text);
+
+    background-color: var(--default--background-color);
+    border: var(--default--border-color) var(--border-size-1) solid;
+    color: var(--default--color);
+
+    &.is-padded {
+        padding: var(--size-3);
+    }
+}

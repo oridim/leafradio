@@ -1,0 +1,10 @@
+.button-group {
+    display: flex;
+
+    align-items: stretch;
+
+    & > * {
+        flex-grow: 1;
+        flex-shrink: 0;
+    }
+}

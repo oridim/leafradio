@@ -1,0 +1,30 @@
+.sidebar {
+    display: flex;
+    flex-direction: column;
+
+    gap: var(--size-3);
+
+    border-right: color-mix(
+        in oklab,
+        var(--color--text) 15%,
+        var(--color--surface)
+    ) var(--border-size-1) solid;
+}
+
+.sidebar--content {
+    display: flex;
+
+    flex-direction: column;
+    flex-grow: 1;
+
+    align-items: stretch;
+
+    gap: var(--spacing--vertical--expand);
+    padding: 0 var(--size-3) var(--size-3) var(--size-3);
+
+    overflow: hidden auto;
+}
+
+.sidebar--header {
+    padding: var(--size-3) var(--size-3) 0 var(--size-3);
+}
