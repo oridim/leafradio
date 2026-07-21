@@ -138,43 +138,36 @@ function determineTargetBucketDuration(numberOfBuckets: number): number {
 }
 
 function formatOutput(outputFormat: OutputFormats, buckets: Bucket[]): string {
+    const collectedTracks = buckets
+        .flatMap(({ id: bucketID, tracks }) =>
+            tracks.map((
+                { id: absoluteFilePath, audioProperties: { duration } },
+            ) => ({ bucketID, duration, absoluteFilePath }))
+        );
+
     switch (outputFormat) {
         case OUTPUT_FORMATS.csv:
-        case OUTPUT_FORMATS.json: {
-            const collectedTracks = buckets
-                .flatMap(({ id: bucketID, tracks }) =>
-                    tracks.map((
-                        { id: absoluteFilePath, audioProperties: { duration } },
-                    ) => ({ bucketID, duration, absoluteFilePath }))
-                );
+            return CSV.stringify(collectedTracks, {
+                columns: ['bucketID', 'duration', 'absoluteFilePath'],
+            });
 
-            return outputFormat === OUTPUT_FORMATS.csv
-                ? CSV.stringify(collectedTracks, {
-                    columns: ['group', 'duration', 'absoluteFilePath'],
-                })
-                : JSON.stringify(collectedTracks);
-        }
+        case OUTPUT_FORMATS.json:
+            return JSON.stringify(collectedTracks);
 
         case OUTPUT_FORMATS.m3u: {
             const playlist = new M3uPlaylist();
-            const { medias } = playlist;
 
-            for (const { id: bucketID, tracks } of buckets) {
-                for (const { audioProperties, id: fullFilePath } of tracks) {
-                    const { duration } = audioProperties;
-
-                    const media = Object.assign(
-                        new M3uMedia(fullFilePath),
+            playlist.medias = collectedTracks
+                .map(({ absoluteFilePath, bucketID, duration }) =>
+                    Object.assign(
+                        new M3uMedia(absoluteFilePath),
                         {
                             duration: Math.floor(duration / 1000),
                             group: `Bucket ${bucketID}`,
                             name: '',
                         },
-                    );
-
-                    medias.push(media);
-                }
-            }
+                    )
+                );
 
             return playlist.getM3uString();
         }
