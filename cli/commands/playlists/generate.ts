@@ -227,9 +227,9 @@ export default command({
                 return;
             }
 
-            console.log(`[LeafRadio] '${tracks.length}' files included.`);
+            console.log(`[LeafRadio] '${tracks.length}' files were included.`);
             console.log(
-                `[LeafRadio] '${skippedCount}' files skipped due to being unprocessed or under-duration.`,
+                `[LeafRadio] '${skippedCount}' files were skipped due to being unprocessed or under-duration.`,
             );
 
             const { buckets } = packPlaylistBuckets({
