@@ -2,13 +2,15 @@ import type { InferEntity } from '@mikro-orm/core';
 
 import { defineEntity, p } from '@mikro-orm/core';
 
-export type MusicalFeaturesEntity = InferEntity<typeof ENTITY_MUSICAL_FEATURES>;
+export type ProcessedMetadataEntity = InferEntity<
+    typeof ENTITY_PROCESSED_METADATA
+>;
 
-export const ENTITY_MUSICAL_FEATURES = defineEntity({
-    name: 'MusicalFeatures',
+export const ENTITY_PROCESSED_METADATA = defineEntity({
+    name: 'ProcessedMetadataEntity',
 
     properties: {
-        musicalFeaturesHash: p.string().primary(),
+        pcmHash: p.string().primary(),
 
         arousal: p.double(),
 

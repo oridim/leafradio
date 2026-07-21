@@ -8,15 +8,7 @@ import {
     FILE_DATABASE,
 } from '@/shared/configuration/filesystem.ts';
 import { ENTITY_AUDIO_FILE } from '@/shared/database/entities/audio-file-entity.ts';
-import { ENTITY_MUSICAL_FEATURES } from '@/shared/database/entities/musical-features-entity.ts';
-import {
-    ENTITY_RADIO,
-    RadioEventsSubscriber,
-} from '@/shared/database/entities/radio-entity.ts';
-import {
-    ENTITY_REPOSITORY,
-    RepositoryEventSubscriber,
-} from '@/shared/database/entities/repository-entity.ts';
+import { ENTITY_PROCESSED_METADATA } from '@/shared/database/entities/processed-metadata-entity.ts';
 
 const DIRECTORY_MIGRATIONS = new URL('../database/migrations', import.meta.url);
 
@@ -34,15 +26,11 @@ export default async function makeDatabaseConfiguration() {
         extensions: [Migrator],
         entities: [
             ENTITY_AUDIO_FILE,
-            ENTITY_MUSICAL_FEATURES,
-            ENTITY_RADIO,
-            ENTITY_REPOSITORY,
+            ENTITY_PROCESSED_METADATA,
         ],
 
         migrations: {
             path: fromFileUrl(DIRECTORY_MIGRATIONS),
         },
-
-        subscribers: [RadioEventsSubscriber, RepositoryEventSubscriber],
     });
 }
