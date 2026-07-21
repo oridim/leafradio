@@ -1,4 +1,4 @@
-import { run } from '@drizzle-team/brocli';
+import { boolean, run, string } from '@drizzle-team/brocli';
 
 import {
     APPLICATION_VERSION,
@@ -6,8 +6,27 @@ import {
 } from '@/shared/configuration/mod.ts';
 import { initDatabase } from '@/shared/database/mod.ts';
 
+import { configureLogger, LOG_LEVEL_NAMES } from '@/cli/utilities/logger.ts';
+
 import COMMAND_PLAYLISTS from '@/cli/commands/playlists.ts';
 import COMMAND_SCAN from '@/cli/commands/scan.ts';
+
+const GLOBAL_OPTIONS = {
+    logLevel: string('log-level')
+        .desc('sets the log level verbosity explicitly')
+        .enum(
+            // **HACK:** `enum` definition function expects at least one non-dynamic
+            // string element as the first element. Brocli is trying to enforce that
+            // there is at least one string element.
+            ...Object.values(LOG_LEVEL_NAMES) as [string, ...string[]],
+        ),
+
+    quiet: boolean('quiet')
+        .desc('suppresses non-essential log output'),
+
+    verbose: boolean('verbose')
+        .desc('enables detailed debug log output'),
+} as const;
 
 await initFilesystem();
 await initDatabase();
@@ -21,5 +40,14 @@ run(
         name: 'leafradio',
         version: `v${APPLICATION_VERSION}`,
         description: 'Leaf Radio application CLI.',
+        globals: GLOBAL_OPTIONS,
+
+        hook: (event, _command, options) => {
+            switch (event) {
+                case 'before':
+                    configureLogger(options);
+                    break;
+            }
+        },
     },
 );
