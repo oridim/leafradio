@@ -1,8 +1,10 @@
+import * as CSV from '@std/csv';
 import { expandGlob } from '@std/fs';
 
 import { command, number, positional, string } from '@drizzle-team/brocli';
+import { M3uMedia, M3uPlaylist } from 'm3u-parser-generator';
 
-import type { Track } from '@/lib/playlist-packer/mod.ts';
+import type { Bucket, Track } from '@/lib/playlist-packer/mod.ts';
 import {
     DEFAULT_SERIALIZED_PACK_PLAYLIST_BUCKETS_PARAMETERS,
     deserializePackPlaylistBucketsParameters,
@@ -11,7 +13,6 @@ import {
     MIXING_RULE_NAMES,
     packPlaylistBuckets,
     PROFILE_NAMES,
-    serializeBucketsToPlaylist,
 } from '@/lib/playlist-packer/mod.ts';
 import { GLOB_AUDIO_FILES } from '@/lib/utilities/path.ts';
 
@@ -21,6 +22,16 @@ import {
     withEntityManager,
 } from '@/shared/database/mod.ts';
 
+const OUTPUT_FORMATS = {
+    csv: 'csv',
+
+    json: 'json',
+
+    m3u: 'm3u',
+} as const;
+
+type OutputFormats = typeof OUTPUT_FORMATS[keyof typeof OUTPUT_FORMATS];
+
 const COMMAND_OPTIONS = {
     directoryPath: positional('directory-path')
         .desc('directory path to build a playlist from')
@@ -29,14 +40,22 @@ const COMMAND_OPTIONS = {
     outputFile: string('output-file')
         .desc('sets the file to output the playlist to'),
 
+    outputFormat: string('output-format')
+        .desc('sets the format to output the playlist as')
+        .enum(
+            // **HACK:** `enum` definition function expects at least one non-dynamic
+            // string element as the first element. Brocli is trying to enforce that
+            // there is at least one string element.
+            ...Object.values(OUTPUT_FORMATS) as [string, ...string[]],
+        )
+        .default(OUTPUT_FORMATS.m3u),
+
     profile: string()
         .desc(
             "sets the a preset profile's to use as a baseline",
         )
         .enum(
-            // **HACK:** `enum` definition function expects at least one non-dynamic
-            // string element as the first element. Brocli is trying to enforce that
-            // there is at least one string element.
+            // **HACK:** See above note on `output-format`.
             ...Object.values(PROFILE_NAMES) as [string, ...string[]],
         ),
 
@@ -45,7 +64,7 @@ const COMMAND_OPTIONS = {
             'sets the distribution curve forumla to determine track inclusion in a bucket',
         )
         .enum(
-            // **HACK:** See above note on `profile`.
+            // **HACK:** See above note on `output-format`.
             ...Object.values(ENERGY_CURVE_NAMES) as [string, ...string[]],
         ),
 
@@ -63,7 +82,7 @@ const COMMAND_OPTIONS = {
             'sets the sorting algorithm used to determine track distribution inside of buckets',
         )
         .enum(
-            // **HACK:** See above note on `profile`.
+            // **HACK:** See above note on `output-format`.
             ...Object.values(MIXING_RULE_NAMES) as [string, ...string[]],
         ),
 
@@ -118,6 +137,50 @@ function determineTargetBucketDuration(numberOfBuckets: number): number {
         .total('milliseconds') / numberOfBuckets;
 }
 
+function formatOutput(outputFormat: OutputFormats, buckets: Bucket[]): string {
+    switch (outputFormat) {
+        case OUTPUT_FORMATS.csv:
+        case OUTPUT_FORMATS.json: {
+            const collectedTracks = buckets
+                .flatMap(({ id: bucketID, tracks }) =>
+                    tracks.map((
+                        { id: absoluteFilePath, audioProperties: { duration } },
+                    ) => ({ bucketID, duration, absoluteFilePath }))
+                );
+
+            return outputFormat === OUTPUT_FORMATS.csv
+                ? CSV.stringify(collectedTracks, {
+                    columns: ['group', 'duration', 'absoluteFilePath'],
+                })
+                : JSON.stringify(collectedTracks);
+        }
+
+        case OUTPUT_FORMATS.m3u: {
+            const playlist = new M3uPlaylist();
+            const { medias } = playlist;
+
+            for (const { id: bucketID, tracks } of buckets) {
+                for (const { audioProperties, id: fullFilePath } of tracks) {
+                    const { duration } = audioProperties;
+
+                    const media = Object.assign(
+                        new M3uMedia(fullFilePath),
+                        {
+                            duration: Math.floor(duration / 1000),
+                            group: `Bucket ${bucketID}`,
+                            name: '',
+                        },
+                    );
+
+                    medias.push(media);
+                }
+            }
+
+            return playlist.getM3uString();
+        }
+    }
+}
+
 export default command({
     name: 'generate',
     desc: 'Generates a M3U playlist out of audio files in a directory.',
@@ -130,6 +193,7 @@ export default command({
                 minimumDuration,
                 profile,
                 outputFile,
+                outputFormat,
                 targetDurationPerBucket,
                 ...serializedPackPlaylistBucketsParameters
             },
@@ -210,15 +274,15 @@ export default command({
                     ),
             });
 
-            const serializedPlaylist = serializeBucketsToPlaylist(buckets);
+            const formattedOutput = formatOutput(outputFormat, buckets);
 
             if (outputFile) {
-                await Deno.writeTextFile(outputFile, serializedPlaylist);
+                await Deno.writeTextFile(outputFile, formattedOutput);
 
                 return;
             }
 
-            console.log(serializedPlaylist);
+            console.log(formattedOutput);
         },
     ),
 });

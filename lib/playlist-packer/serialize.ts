@@ -1,5 +1,3 @@
-import { M3uMedia, M3uPlaylist } from 'm3u-parser-generator';
-
 import type { EnergyCurveNames } from '@/lib/playlist-packer/energy-curves.ts';
 import {
     determineEnergyCurve,
@@ -12,7 +10,6 @@ import {
 } from '@/lib/playlist-packer/mixing-rules.ts';
 import type { PackPlaylistBucketsParameters } from '@/lib/playlist-packer/options.ts';
 import { DEFAULT_PACK_PLAYLIST_BUCKETS_PARAMETERS } from '@/lib/playlist-packer/mod.ts';
-import type { Bucket } from '@/lib/playlist-packer/types.ts';
 
 export const DEFAULT_SERIALIZED_PACK_PLAYLIST_BUCKETS_PARAMETERS =
     serializePackPlaylistBucketsParameters(
@@ -66,30 +63,4 @@ export function serializePackPlaylistBucketsParameters(
                 : {}
         ),
     };
-}
-
-export function serializeBucketsToPlaylist(
-    buckets: Bucket[],
-): string {
-    const playlist = new M3uPlaylist();
-    const { medias } = playlist;
-
-    for (const { id: bucketID, tracks } of buckets) {
-        for (const { audioProperties, id: fullFilePath } of tracks) {
-            const { duration } = audioProperties;
-
-            const media = Object.assign(
-                new M3uMedia(fullFilePath),
-                {
-                    duration: Math.floor(duration / 1000),
-                    group: `Bucket ${bucketID}`,
-                    name: '',
-                },
-            );
-
-            medias.push(media);
-        }
-    }
-
-    return playlist.getM3uString();
 }
