@@ -35,11 +35,17 @@ export function deserializePackPlaylistBucketsParameters(
 ): PackPlaylistBucketsParameters {
     const { energyCurve, mixingRule, ...options } = serializedOptions;
 
-    return Object.assign(
-        options,
-        energyCurve ? { energyCurve: determineEnergyCurve(energyCurve) } : {},
-        mixingRule ? { mixingRule: determineMixingRule(mixingRule) } : {},
-    );
+    return {
+        ...options,
+        ...(
+            energyCurve
+                ? { energyCurve: determineEnergyCurve(energyCurve) }
+                : {}
+        ),
+        ...(
+            mixingRule ? { mixingRule: determineMixingRule(mixingRule) } : {}
+        ),
+    };
 }
 
 export function serializePackPlaylistBucketsParameters(
@@ -47,13 +53,19 @@ export function serializePackPlaylistBucketsParameters(
 ): SerializedPackPlaylistBucketsParameters {
     const { energyCurve, mixingRule, ...serializedOptions } = options;
 
-    return Object.assign(
-        serializedOptions,
-        energyCurve
-            ? { energyCurve: determineEnergyCurveName(energyCurve) }
-            : {},
-        mixingRule ? { mixingRule: determineMixingRuleName(mixingRule) } : {},
-    );
+    return {
+        ...serializedOptions,
+        ...(
+            energyCurve
+                ? { energyCurve: determineEnergyCurveName(energyCurve) }
+                : {}
+        ),
+        ...(
+            mixingRule
+                ? { mixingRule: determineMixingRuleName(mixingRule) }
+                : {}
+        ),
+    };
 }
 
 export function serializeBucketsToPlaylist(
