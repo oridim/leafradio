@@ -148,14 +148,14 @@ function formatOutput(outputFormat: OutputFormats, buckets: Bucket[]): string {
     const collectedTracks = buckets
         .flatMap(({ id: bucketID, tracks }) =>
             tracks.map((
-                { id: absoluteFilePath, audioProperties: { duration } },
-            ) => ({ bucketID, duration, absoluteFilePath }))
+                { id: filePath, audioProperties: { duration } },
+            ) => ({ bucketID, duration, filePath }))
         );
 
     switch (outputFormat) {
         case OUTPUT_FORMATS.csv:
             return CSV.stringify(collectedTracks, {
-                columns: ['bucketID', 'duration', 'absoluteFilePath'],
+                columns: ['bucketID', 'duration', 'filePath'],
             });
 
         case OUTPUT_FORMATS.human:
@@ -163,11 +163,11 @@ function formatOutput(outputFormat: OutputFormats, buckets: Bucket[]): string {
                 .header(['Bucket ID', 'Duration', 'Absolute File Path'])
                 .body(
                     collectedTracks.map((
-                        { absoluteFilePath, bucketID, duration },
+                        { filePath, bucketID, duration },
                     ) => [
                         bucketID,
                         formatPlaytimeDuration(duration),
-                        truncateCenter(absoluteFilePath, 64 + 32 + 16),
+                        truncateCenter(filePath, 64 + 32 + 16),
                     ]),
                 )
                 .border(true)
@@ -180,9 +180,9 @@ function formatOutput(outputFormat: OutputFormats, buckets: Bucket[]): string {
             const playlist = new M3uPlaylist();
 
             playlist.medias = collectedTracks
-                .map(({ absoluteFilePath, bucketID, duration }) =>
+                .map(({ filePath, bucketID, duration }) =>
                     Object.assign(
-                        new M3uMedia(absoluteFilePath),
+                        new M3uMedia(filePath),
                         {
                             duration: Math.floor(duration / 1000),
                             group: `Bucket ${bucketID}`,
