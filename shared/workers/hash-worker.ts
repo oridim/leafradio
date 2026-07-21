@@ -9,17 +9,17 @@ export interface HashWorkerInput {
 }
 
 export interface HashWorkerOutput {
-    readonly hash: string;
+    readonly pcmHash: string;
 }
 
 export default (async (input) => {
     const { filePath } = input;
 
     using file = await Deno.open(filePath);
-    const hash = await digest('BLAKE3', file.readable);
+    const pcmHash = await digest('BLAKE3', file.readable);
 
     return {
-        hash,
+        pcmHash,
     };
 }) satisfies WorkerRunFunction<
     HashWorkerInput,

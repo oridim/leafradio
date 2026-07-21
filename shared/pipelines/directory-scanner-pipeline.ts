@@ -1,31 +1,24 @@
 import { expandGlob } from '@std/fs';
-import { relative } from '@std/path';
 
 import type { PipelineStep } from '@/lib/utilities/pipeline.ts';
 import { makePipeline } from '@/lib/utilities/pipeline.ts';
 import { makeWorkerPool } from '@/lib/workers/mod.ts';
 
-import type {
-    AudioFileEntity,
-    RepositoryScanStates,
-} from '@/shared/database/mod.ts';
+import type { AudioFileEntity } from '@/shared/database/mod.ts';
 import {
     ENTITY_AUDIO_FILE,
     ENTITY_MANAGER,
-    ENTITY_MUSICAL_FEATURES,
-    ENTITY_REPOSITORY,
-    EVENT_REPOSITORIES_MUTATED,
-    REPOSITORY_SCAN_STATES,
+    ENTITY_PROCESSED_METADATA,
 } from '@/shared/database/mod.ts';
 import type {
+    AudioProcessingWorkerInput,
+    AudioProcessingWorkerOutput,
     HashWorkerInput,
     HashWorkerOutput,
-    MusicalFeaturesWorkerInput,
-    MusicalFeaturesWorkerOutput,
 } from '@/shared/workers/mod.ts';
 import {
+    FILE_AUDIO_PROCESSING_WORKER,
     FILE_HASH_WORKER,
-    FILE_MUSICAL_FEATURES_WORKER,
 } from '@/shared/workers/mod.ts';
 
 const GLOB_AUDIO_FILES = '**/*.{aac,flac,m4a,mp3,ogg,wav}';
@@ -37,7 +30,7 @@ const WORKER_POOL = makeWorkerPool({
 type ScanPipelineStep = PipelineStep<ScanPipelineContext>;
 
 interface ExtractionJob {
-    readonly entry: RepositoryFileEntry;
+    readonly entry: FileEntry;
 
     readonly existingAudioFile?: AudioFileEntity;
 }
@@ -45,40 +38,40 @@ interface ExtractionJob {
 type ExtractionResult = {
     readonly success: false;
 } | {
-    readonly entry: RepositoryFileEntry;
+    readonly entry: FileEntry;
 
     readonly existingAudioFile?: AudioFileEntity;
 
-    readonly features?: MusicalFeaturesWorkerOutput;
+    readonly processedData?: AudioProcessingWorkerOutput;
 
-    readonly musicalFeaturesHash: string;
+    readonly pcmHash: string;
 
     readonly success: true;
 };
+
+interface FileEntry {
+    readonly filePath: string;
+
+    readonly lastModified: number;
+}
 
 type HashJobResult = {
     readonly success: false;
 } | {
-    readonly entry: RepositoryFileEntry;
+    readonly entry: FileEntry;
 
     readonly existingAudioFile?: AudioFileEntity;
 
-    readonly hash: string;
+    readonly pcmHash: string;
 
     readonly success: true;
 };
 
-interface RepositoryFileEntry {
-    readonly filePath: string;
-
-    readonly lastModified: number;
-
-    readonly relativeFilePath: string;
-
-    readonly repositoryID: number;
-}
-
 interface ScanPipelineContext {
+    directoryFiles: FileEntry[];
+
+    directoryPath: string;
+
     existingHashes: Set<string>;
 
     extractionResults: ExtractionResult[];
@@ -86,20 +79,11 @@ interface ScanPipelineContext {
     hashResults: HashJobResult[];
 
     jobs: ExtractionJob[];
-
-    repositoryFiles: RepositoryFileEntry[];
-
-    repositoryID: number;
 }
 
-async function collectRepositoryFiles(
-    repositoryID: number,
-): Promise<RepositoryFileEntry[]> {
-    const { directoryPath } = await ENTITY_MANAGER.findOneOrFail(
-        ENTITY_REPOSITORY,
-        { repositoryID },
-    );
-
+async function collectDirectoryFiles(
+    directoryPath: string,
+): Promise<FileEntry[]> {
     const entries = await Array.fromAsync(expandGlob(GLOB_AUDIO_FILES, {
         followSymlinks: true,
         root: directoryPath,
@@ -111,20 +95,17 @@ async function collectRepositoryFiles(
             .map(
                 async (entry) => {
                     const { path: filePath } = entry;
-                    const relativeFilePath = relative(directoryPath, filePath);
                     const { mtime } = await Deno.stat(filePath);
 
                     if (mtime === null) {
                         throw new Error(
-                            "bad dispatch to 'collectRepositoryFiles' (timestamp not available on platform)",
+                            "bad dispatch to 'collectDirectoryFiles' (timestamp not available on platform)",
                         );
                     }
 
                     return {
                         filePath,
                         lastModified: mtime.getTime(),
-                        relativeFilePath,
-                        repositoryID,
                     };
                 },
             ),
@@ -132,21 +113,22 @@ async function collectRepositoryFiles(
 }
 
 async function determineExtractionJobs(
-    repositoryID: number,
-    repositoryFiles: RepositoryFileEntry[],
+    directoryFiles: FileEntry[],
 ): Promise<ExtractionJob[]> {
+    const filePaths = directoryFiles.map((file) => file.filePath);
+
     const existingAudioFiles = await ENTITY_MANAGER.find(ENTITY_AUDIO_FILE, {
-        repository: repositoryID,
+        absoluteFilePath: { $in: filePaths },
     });
 
     const audioFilesMap = new Map(
-        existingAudioFiles.map((file) => [file.relativeFilePath, file]),
+        existingAudioFiles.map((file) => [file.absoluteFilePath, file]),
     );
 
-    return repositoryFiles
+    return directoryFiles
         .map((entry) => ({
             entry,
-            existingAudioFile: audioFilesMap.get(entry.relativeFilePath),
+            existingAudioFile: audioFilesMap.get(entry.filePath),
         }))
         .filter(
             ({ entry, existingAudioFile }) =>
@@ -155,7 +137,7 @@ async function determineExtractionJobs(
         );
 }
 
-async function extractFeatures(
+async function extractAudioData(
     hashResults: HashJobResult[],
     existingHashes: Set<string>,
 ): Promise<ExtractionResult[]> {
@@ -165,23 +147,23 @@ async function extractFeatures(
                 return { success: false };
             }
 
-            const { entry, existingAudioFile, hash } = result;
+            const { entry, existingAudioFile, pcmHash } = result;
 
             try {
-                const features = existingHashes.has(hash)
+                const processedData = existingHashes.has(pcmHash)
                     ? undefined
-                    : await runMusicalFeaturesWorker(entry.filePath);
+                    : await runAudioProcessingWorker(entry.filePath);
 
                 return {
                     entry,
                     existingAudioFile,
-                    features,
-                    musicalFeaturesHash: hash,
+                    pcmHash,
+                    processedData,
                     success: true,
                 };
             } catch (error) {
                 console.error(
-                    `bad argument #0 to 'extractFeatures' (failed to extract features for '${entry.filePath}'):`,
+                    `bad argument #0 to 'extractAudioData' (failed to process audio for '${entry.filePath}'):`,
                 );
                 console.error(error);
 
@@ -195,15 +177,15 @@ async function fetchExistingHashes(
     hashResults: HashJobResult[],
 ): Promise<Set<string>> {
     const hashes = hashResults.flatMap((result) =>
-        result.success ? [result.hash] : []
+        result.success ? [result.pcmHash] : []
     );
 
     return new Set(
         hashes.length === 0 ? [] : (
-            await ENTITY_MANAGER.find(ENTITY_MUSICAL_FEATURES, {
-                musicalFeaturesHash: { $in: hashes },
+            await ENTITY_MANAGER.find(ENTITY_PROCESSED_METADATA, {
+                pcmHash: { $in: hashes },
             })
-        ).map((feature) => feature.musicalFeaturesHash),
+        ).map((metadata) => metadata.pcmHash),
     );
 }
 
@@ -213,12 +195,12 @@ async function hashFiles(jobs: ExtractionJob[]): Promise<HashJobResult[]> {
             const { filePath } = entry;
 
             try {
-                const { hash } = await runHashWorker(filePath);
+                const { pcmHash } = await runHashWorker(filePath);
 
                 return {
                     entry,
                     existingAudioFile,
-                    hash,
+                    pcmHash,
                     success: true as const,
                 };
             } catch (error) {
@@ -236,10 +218,9 @@ async function hashFiles(jobs: ExtractionJob[]): Promise<HashJobResult[]> {
 }
 
 async function processExtractionResults(
-    repositoryID: number,
     results: ExtractionResult[],
 ): Promise<void> {
-    const featuresToUpsert = [];
+    const metadataToUpsert = [];
 
     for (const result of results) {
         if (!result.success) {
@@ -249,62 +230,64 @@ async function processExtractionResults(
         const {
             entry,
             existingAudioFile,
-            features,
-            musicalFeaturesHash,
+            pcmHash,
+            processedData,
         } = result;
 
-        if (!musicalFeaturesHash) {
+        if (!pcmHash) {
             continue;
         }
 
-        if (features) {
-            const {
-                arousal,
-                bpm,
-                duration,
-                key,
-                valence,
-            } = features;
+        if (processedData) {
+            const { audioProperties, musicalFeatures } = processedData;
 
-            featuresToUpsert.push({
-                arousal,
-                bpm,
-                duration,
-                key,
-                musicalFeaturesHash,
-                valence,
+            metadataToUpsert.push({
+                audioProperties,
+                musicalFeatures,
+                pcmHash,
             });
         }
 
-        const { lastModified, relativeFilePath } = entry;
+        const { filePath: absoluteFilePath, lastModified } = entry;
 
         if (existingAudioFile) {
             ENTITY_MANAGER.assign(existingAudioFile, {
                 lastModified,
-                musicalFeatures: musicalFeaturesHash,
+                processedMetadata: pcmHash,
             });
         } else {
             ENTITY_MANAGER.persist(
                 ENTITY_MANAGER.create(ENTITY_AUDIO_FILE, {
+                    absoluteFilePath,
                     lastModified,
-                    relativeFilePath,
-                    musicalFeatures: musicalFeaturesHash,
-                    repository: repositoryID,
+                    processedMetadata: pcmHash,
                 }),
             );
         }
     }
 
-    if (featuresToUpsert.length > 0) {
+    if (metadataToUpsert.length > 0) {
         ENTITY_MANAGER.persist(
             await ENTITY_MANAGER.upsertMany(
-                ENTITY_MUSICAL_FEATURES,
-                featuresToUpsert,
+                ENTITY_PROCESSED_METADATA,
+                metadataToUpsert,
             ),
         );
     }
 
     await ENTITY_MANAGER.flush();
+}
+
+function runAudioProcessingWorker(
+    filePath: string,
+): Promise<AudioProcessingWorkerOutput> {
+    return WORKER_POOL.run<
+        AudioProcessingWorkerInput,
+        AudioProcessingWorkerOutput
+    >(
+        FILE_AUDIO_PROCESSING_WORKER,
+        { filePath },
+    );
 }
 
 function runHashWorker(filePath: string): Promise<HashWorkerOutput> {
@@ -317,114 +300,66 @@ function runHashWorker(filePath: string): Promise<HashWorkerOutput> {
     );
 }
 
-function runMusicalFeaturesWorker(
-    filePath: string,
-): Promise<MusicalFeaturesWorkerOutput> {
-    return WORKER_POOL.run<
-        MusicalFeaturesWorkerInput,
-        MusicalFeaturesWorkerOutput
-    >(
-        FILE_MUSICAL_FEATURES_WORKER,
-        { filePath },
-    );
-}
-
-async function updateScanState(
-    repositoryID: number,
-    scanState: RepositoryScanStates,
-) {
-    await ENTITY_MANAGER.nativeUpdate(
-        ENTITY_REPOSITORY,
-        { repositoryID },
-        { scanState },
-    );
-    EVENT_REPOSITORIES_MUTATED.dispatch();
-}
-
 const stepCollectFiles = (async (context) => {
-    await updateScanState(
-        context.repositoryID,
-        REPOSITORY_SCAN_STATES.scanningDirectory,
-    );
+    context.directoryFiles = await collectDirectoryFiles(context.directoryPath);
 
-    context.repositoryFiles = await collectRepositoryFiles(
-        context.repositoryID,
-    );
-
-    return context.repositoryFiles.length !== 0;
+    return context.directoryFiles.length !== 0;
 }) satisfies ScanPipelineStep;
 
 const stepDetermineJobs = (async (context) => {
-    context.jobs = await determineExtractionJobs(
-        context.repositoryID,
-        context.repositoryFiles,
-    );
+    context.jobs = await determineExtractionJobs(context.directoryFiles);
 
     return context.jobs.length !== 0;
 }) satisfies ScanPipelineStep;
 
 const stepHashFiles = (async (context) => {
-    await updateScanState(
-        context.repositoryID,
-        REPOSITORY_SCAN_STATES.processingFiles,
-    );
-
     context.hashResults = await hashFiles(context.jobs);
 
     return context.hashResults.some((result) => result.success);
 }) satisfies ScanPipelineStep;
 
-const stepCheckExistingFeatures = (async (context) => {
+const stepCheckExistingHashes = (async (context) => {
     context.existingHashes = await fetchExistingHashes(context.hashResults);
 }) satisfies ScanPipelineStep;
 
-const stepExtractFeatures = (async (context) => {
-    context.extractionResults = await extractFeatures(
+const stepExtractAudioData = (async (context) => {
+    context.extractionResults = await extractAudioData(
         context.hashResults,
         context.existingHashes,
     );
 }) satisfies ScanPipelineStep;
 
 const stepSaveResults = (async (context) => {
-    await processExtractionResults(
-        context.repositoryID,
-        context.extractionResults,
-    );
+    await processExtractionResults(context.extractionResults);
 }) satisfies ScanPipelineStep;
 
-export async function scanRepository(repositoryID: number): Promise<boolean> {
+export async function scanDirectory(directoryPath: string): Promise<boolean> {
     let hasError = false;
 
     const pipeline = makePipeline<ScanPipelineContext>({
-        repositoryID,
+        directoryFiles: [],
+        directoryPath,
         existingHashes: new Set(),
         extractionResults: [],
         hashResults: [],
         jobs: [],
-        repositoryFiles: [],
     })
         .addStep(stepCollectFiles)
         .addStep(stepDetermineJobs)
         .addStep(stepHashFiles)
-        .addStep(stepCheckExistingFeatures)
-        .addStep(stepExtractFeatures)
+        .addStep(stepCheckExistingHashes)
+        .addStep(stepExtractAudioData)
         .addStep(stepSaveResults);
 
     try {
         await pipeline.execute();
     } catch (error) {
         console.error(
-            `bad dispatch to 'processRepository' (failed to scan repository '${repositoryID}'):`,
+            `bad dispatch to 'scanDirectory' (failed to scan directory '${directoryPath}'):`,
         );
         console.error(error);
 
         hasError = true;
-    } finally {
-        const scanState = hasError
-            ? REPOSITORY_SCAN_STATES.badScan
-            : REPOSITORY_SCAN_STATES.notScanning;
-
-        await updateScanState(repositoryID, scanState);
     }
 
     return !hasError;

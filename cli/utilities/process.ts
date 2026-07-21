@@ -4,8 +4,7 @@ export const EXIT_CODES = {
     invalidOptions: 1,
     invalidValue: 2,
 
-    invalidScanState: 100,
-    badScan: 101,
+    badScan: 100,
 } as const;
 
 export type ExitCodes = typeof EXIT_CODES[keyof typeof EXIT_CODES];

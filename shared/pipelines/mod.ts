@@ -1,1 +1,1 @@
-export { scanRepository } from '@/shared/pipelines/repository-scanner-pipeline.ts';
+export { scanDirectory } from '@/shared/pipelines/directory-scanner-pipeline.ts';
