@@ -241,29 +241,23 @@ export default command({
                 { populate: ['processedMetadata'] },
             );
 
-            const tracks: Track[] = [];
-            let skippedCount = absoluteFilePaths.length;
-
-            for (const audioFile of audioFiles) {
-                if (!audioFile.processedMetadata) {
-                    continue;
-                }
-
-                const { audioProperties, musicalFeatures } =
-                    audioFile.processedMetadata;
-
-                if (audioProperties.duration < minimumDuration) {
-                    continue;
-                }
-
-                tracks.push({
-                    id: audioFile.absoluteFilePath,
+            const tracks = audioFiles
+                .filter(
+                    ({ processedMetadata }) =>
+                        processedMetadata &&
+                        processedMetadata.audioProperties.duration <
+                            minimumDuration,
+                )
+                .map((
+                    {
+                        absoluteFilePath,
+                        processedMetadata: { audioProperties, musicalFeatures },
+                    },
+                ) => ({
+                    id: absoluteFilePath,
                     audioProperties,
                     musicalFeatures,
-                });
-
-                skippedCount--;
-            }
+                })) satisfies Track[];
 
             if (tracks.length === 0) {
                 LOGGER.info('No files were included, skipping generation.');
@@ -271,9 +265,11 @@ export default command({
                 return;
             }
 
-            LOGGER.info(`'${tracks.length}' files were included.`);
+            const skippedAudioFiles = absoluteFilePaths.length - tracks.length;
+
+            LOGGER.info(`'${tracks.length}' audio files were included.`);
             LOGGER.info(
-                `'${skippedCount}' files were skipped due to being unprocessed or under-duration.`,
+                `'${skippedAudioFiles}' audio files were skipped due to being unprocessed or under-duration.`,
             );
 
             const { buckets } = packPlaylistBuckets({
