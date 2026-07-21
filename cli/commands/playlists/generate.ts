@@ -22,6 +22,8 @@ import {
     withEntityManager,
 } from '@/shared/database/mod.ts';
 
+import LOGGER from '@/cli/utilities/logger.ts';
+
 const OUTPUT_FORMATS = {
     csv: 'csv',
 
@@ -244,16 +246,14 @@ export default command({
             }
 
             if (tracks.length === 0) {
-                console.log(
-                    '[LeafRadio] No files were included, skipping generation.',
-                );
+                LOGGER.info('No files were included, skipping generation.');
 
                 return;
             }
 
-            console.log(`[LeafRadio] '${tracks.length}' files were included.`);
-            console.log(
-                `[LeafRadio] '${skippedCount}' files were skipped due to being unprocessed or under-duration.`,
+            LOGGER.info(`'${tracks.length}' files were included.`);
+            LOGGER.info(
+                `'${skippedCount}' files were skipped due to being unprocessed or under-duration.`,
             );
 
             const { buckets } = packPlaylistBuckets({
@@ -271,7 +271,6 @@ export default command({
 
             if (outputFile) {
                 await Deno.writeTextFile(outputFile, formattedOutput);
-
                 return;
             }
 

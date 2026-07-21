@@ -5,6 +5,8 @@ import { getZonedDateTimeFromEpochMilliseconds } from '@/lib/utilities/datetime.
 import { determineNowPlaying } from '@/lib/utilities/playlists.ts';
 import { EXIT_CODES } from '@/cli/utilities/process.ts';
 
+import LOGGER from '@/cli/utilities/logger.ts';
+
 const COMMAND_OPTIONS = {
     playlistFile: positional('playlist-file')
         .desc('path to the m3u or m3u8 playlist file')
@@ -33,10 +35,8 @@ export default command({
         try {
             playlistText = await Deno.readTextFile(playlistFile);
         } catch (error) {
-            console.error(
-                `[LeafRadio] Failed to read playlist file '${playlistFile}'.`,
-            );
-            console.error(error);
+            LOGGER.error(`Failed to read playlist file '${playlistFile}'.`);
+            LOGGER.error(error);
 
             Deno.exit(EXIT_CODES.invalidOptions);
         }
@@ -46,10 +46,8 @@ export default command({
         try {
             zonedDateTime = getZonedDateTimeFromEpochMilliseconds(timestamp);
         } catch (error) {
-            console.error(
-                `[LeafRadio] Failed to parse timestamp '${timestamp}'.`,
-            );
-            console.error(error);
+            LOGGER.error(`Failed to parse timestamp '${timestamp}'.`);
+            LOGGER.error(error);
 
             Deno.exit(EXIT_CODES.invalidOptions);
         }
@@ -59,8 +57,8 @@ export default command({
         const nowPlaying = determineNowPlaying(playlist, zonedDateTime);
 
         if (!nowPlaying) {
-            console.log(
-                `[LeafRadio] Playlist file '${playlistFile}' is empty or ran out of tracks.`,
+            LOGGER.info(
+                `Playlist file '${playlistFile}' is empty or ran out of tracks.`,
             );
 
             Deno.exit(EXIT_CODES.invalidValue);
@@ -90,7 +88,7 @@ export default command({
             style: 'digital',
         });
 
-        console.log('[LeafRadio] Now Playing Status:');
+        console.log('Now Playing Status:');
         console.log(`  File:      ${nowPlaying.filePath}`);
         console.log(
             `  Track:     ${nowPlaying.index + 1} of ${playlist.medias.length}`,

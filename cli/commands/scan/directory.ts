@@ -7,10 +7,11 @@ import { scanDirectory } from '@/shared/pipelines/mod.ts';
 
 import { EXIT_CODES } from '@/cli/utilities/process.ts';
 
+import LOGGER from '@/cli/utilities/logger.ts';
+
 const COMMAND_OPTIONS = {
-    directoryPath: positional('directory-path').desc(
-        'directory path to scan for audio files',
-    )
+    directoryPath: positional('directory-path')
+        .desc('directory path to scan for audio files')
         .required(),
 } as const;
 
@@ -22,17 +23,17 @@ export default command({
     handler: withEntityManager(async ({ directoryPath }) => {
         const resolvedDirectoryPath = resolve(directoryPath);
 
-        console.log(
-            `[LeafRadio] Scanning '${directoryPath}'...`,
+        LOGGER.info(
+            `Scanning '${directoryPath}'...`,
         );
 
         const success = await scanDirectory(resolvedDirectoryPath);
 
         if (!success) {
-            console.error('[LeafRadio] Scan failed due to an error.');
+            LOGGER.error('Scan failed due to an error.');
             Deno.exit(EXIT_CODES.badScan);
         }
 
-        console.log('[LeafRadio] Scanning finished!');
+        LOGGER.info('Scanning finished!');
     }),
 });
