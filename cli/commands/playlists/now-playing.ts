@@ -1,13 +1,7 @@
 import * as CSV from '@std/csv';
 
 import { Table } from '@cliffy/table';
-import {
-    boolean,
-    command,
-    number,
-    positional,
-    string,
-} from '@drizzle-team/brocli';
+import { command, number, positional, string } from '@drizzle-team/brocli';
 import type { M3uPlaylist } from 'm3u-parser-generator';
 import { M3uParser } from 'm3u-parser-generator';
 
@@ -39,6 +33,12 @@ const COMMAND_OPTIONS = {
         .desc('path to the m3u or m3u8 playlist file')
         .required(),
 
+    currentIndex: number('current-index')
+        .desc('matches the track at the given index'),
+
+    previousIndex: number('previous-index')
+        .desc('matches the track immediately following the given index'),
+
     outputFormat: string('output-format')
         .desc('sets the format to output the playlist as')
         .enum(
@@ -48,10 +48,6 @@ const COMMAND_OPTIONS = {
             ...Object.values(OUTPUT_FORMATS) as [string, ...string[]],
         )
         .default(OUTPUT_FORMATS.human),
-
-    excludeSeekTime: boolean('exclude-seek-time')
-        .desc('excludes the seek time from valid output formats')
-        .default(false),
 
     timestamp: number('timestamp')
         .desc(
@@ -68,9 +64,8 @@ function formatOutput(
     outputFormat: OutputFormats,
     playlist: M3uPlaylist,
     nowPlayingTrack: NowPlayingTrack,
-    excludeSeekTime: boolean,
 ): string {
-    const { filePath, index, group, seekTime, trackDuration } = nowPlayingTrack;
+    const { filePath, group, index, seekTime, trackDuration } = nowPlayingTrack;
 
     const bucketID = group ? group.slice(7) : null;
     const trackID = index + 1;
@@ -128,10 +123,17 @@ function formatOutput(
                 filePath,
             });
 
-        case OUTPUT_FORMATS.liquidSoap:
-            return excludeSeekTime
-                ? filePath
-                : `annotate:liq_cue_in="${seekTime / 1000}":${filePath}`;
+        case OUTPUT_FORMATS.liquidSoap: {
+            const annotations: string[] = [
+                `track_index="${index}"`,
+            ];
+
+            if (seekTime >= 0) {
+                annotations.push(`liq_cue_in="${seekTime / 1000}"`);
+            }
+
+            return `annotate:${annotations.join(':')}:${filePath}`;
+        }
     }
 }
 
@@ -142,7 +144,7 @@ export default command({
     options: COMMAND_OPTIONS,
 
     handler: async (
-        { excludeSeekTime, playlistFile, outputFormat, timestamp },
+        { currentIndex, outputFormat, playlistFile, previousIndex, timestamp },
     ) => {
         let playlistText: string;
 
@@ -172,6 +174,7 @@ export default command({
         const nowPlayingTrack = determineNowPlayingTrack(
             playlist,
             zonedDateTime,
+            { currentIndex, previousIndex },
         );
 
         if (!nowPlayingTrack) {
@@ -186,7 +189,6 @@ export default command({
             outputFormat as OutputFormats,
             playlist,
             nowPlayingTrack,
-            excludeSeekTime,
         );
 
         console.log(formattedOutput);
