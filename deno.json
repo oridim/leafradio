@@ -2,6 +2,7 @@
     "name": "leafradio",
     "version": "0.0.1",
     "license": "MIT",
+
     "compilerOptions": {
         "jsx": "react-jsx",
         "jsxImportSource": "@oridim/datastar-serve",
@@ -13,6 +14,14 @@
         "noUnusedLocals": true,
         "noUnusedParameters": true,
         "types": ["@types/meyda"]
+    },
+
+    "compile": {
+        "include": [
+            "lib/workers/worker-runner.ts",
+            "shared/workers/audio-processing-worker.ts",
+            "shared/workers/hash-worker.ts"
+        ]
     },
 
     "fmt": {
@@ -65,7 +74,8 @@
     "nodeModulesDir": "auto",
 
     "tasks": {
-        "cli:compile:linux:x86_64": "deno compile --allow-read --allow-write --allow-net --allow-run --allow-env --allow-ffi --output ./dist/leafradio.x86_64-unknown-linux ./cli/mod.ts",
+        "cli:compile": "deno compile --allow-read --allow-write --allow-net --allow-run --allow-env --allow-ffi",
+        "cli:compile:linux:x86_64": "deno task cli:compile --output ./dist/leafradio.x86_64-unknown-linux ./cli/mod.ts",
         "cli:run": "deno run --allow-read --allow-write --allow-net --allow-run --allow-env --allow-ffi ./cli/mod.ts",
         "mikro-orm:cli": "MIKRO_ORM_CLI_CONFIG=./shared/configuration/database.ts deno run -A npm:@mikro-orm/cli",
         "migrations:generate": "deno task mikro-orm:cli migration:create",
