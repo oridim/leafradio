@@ -243,10 +243,8 @@ export default command({
 
             const tracks = audioFiles
                 .filter(
-                    ({ processedMetadata }) =>
-                        processedMetadata &&
-                        processedMetadata.audioProperties.duration <
-                            minimumDuration,
+                    ({ processedMetadata: { audioProperties } }) =>
+                        audioProperties.duration >= minimumDuration,
                 )
                 .map((
                     {
