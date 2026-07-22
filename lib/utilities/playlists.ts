@@ -33,7 +33,7 @@ export function determineNowPlayingTrack(
     let targetIndex: number | undefined;
 
     if (currentIndex !== undefined) {
-        targetIndex = options.currentIndex;
+        targetIndex = currentIndex;
     } else if (previousIndex !== undefined) {
         targetIndex = (previousIndex + 1) % medias.length;
     }
