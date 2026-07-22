@@ -9,7 +9,7 @@ import {
     WorkerRunFunction,
 } from '@/lib/workers/types.ts';
 
-self.addEventListener('message', async (event) => {
+self.addEventListener('message', async (event: MessageEvent) => {
     const { id, input, url } = event.data as WorkerRequest;
 
     let output: WorkerObject;
