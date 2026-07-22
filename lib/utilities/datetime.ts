@@ -23,3 +23,9 @@ export function formatPlaytimeDuration(playtimeDuration: number): string {
 
     return FORMATTER_PLAYTIME.format(duration);
 }
+
+export function resolveTimezone(): string {
+    return Intl.DateTimeFormat()
+        .resolvedOptions()
+        .timeZone;
+}

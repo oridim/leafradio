@@ -2,6 +2,8 @@ import { uniformInt } from 'pure-rand/distribution/uniformInt';
 import { uniformFloat64 } from 'pure-rand/distribution/uniformFloat64';
 import { xoroshiro128plus } from 'pure-rand/generator/xoroshiro128plus';
 
+import { fnv32a } from '@/lib/utilities/crypto.ts';
+
 export interface RandomNumberGenerator {
     random(): number;
 
@@ -12,6 +14,73 @@ export interface RandomNumberGenerator {
     randomInteger(min: number, max: number): number;
 
     shuffleElements<T>(array: T[]): T[];
+}
+
+export function resolveSeed(
+    input: string | number,
+    timeZone = 'UTC',
+): number {
+    if (typeof input === 'number') {
+        return Math.floor(input);
+    }
+
+    const trimmedInput = input.trim();
+
+    if (/^\d+$/.test(trimmedInput)) {
+        return Number.parseInt(trimmedInput, 10);
+    }
+
+    try {
+        const duration = Temporal.Duration.from(trimmedInput);
+
+        return Temporal.Now
+            .zonedDateTimeISO(timeZone)
+            .add(duration)
+            .epochMilliseconds;
+    } catch {}
+
+    try {
+        return Temporal.Instant
+            .from(trimmedInput)
+            .epochMilliseconds;
+    } catch {}
+
+    try {
+        return Temporal.ZonedDateTime
+            .from(trimmedInput)
+            .epochMilliseconds;
+    } catch {}
+
+    try {
+        return Temporal.PlainDateTime
+            .from(trimmedInput)
+            .toZonedDateTime(timeZone)
+            .epochMilliseconds;
+    } catch {}
+
+    try {
+        return Temporal.PlainDateTime
+            .from(`${trimmedInput}:00`)
+            .toZonedDateTime(timeZone)
+            .epochMilliseconds;
+    } catch {}
+
+    try {
+        return Temporal.PlainDate
+            .from(trimmedInput)
+            .toZonedDateTime(timeZone)
+            .epochMilliseconds;
+    } catch {}
+
+    try {
+        return Temporal.PlainYearMonth
+            .from(trimmedInput)
+            .toPlainDate({ day: 1 })
+            .toZonedDateTime(timeZone)
+            .epochMilliseconds;
+    } catch {}
+
+    return fnv32a(trimmedInput);
 }
 
 export function makeRandomNumberGenerator(

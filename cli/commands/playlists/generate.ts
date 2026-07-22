@@ -15,8 +15,12 @@ import {
     packPlaylistBuckets,
     PROFILE_NAMES,
 } from '@/lib/playlist-packer/mod.ts';
-import { formatPlaytimeDuration } from '@/lib/utilities/datetime.ts';
+import {
+    formatPlaytimeDuration,
+    resolveTimezone,
+} from '@/lib/utilities/datetime.ts';
 import { GLOB_AUDIO_FILES } from '@/lib/utilities/path.ts';
+import { resolveSeed } from '@/lib/utilities/random.ts';
 import { truncateCenter } from '@/lib/utilities/string.ts';
 
 import {
@@ -113,13 +117,14 @@ const COMMAND_OPTIONS = {
             "sets how exacting a track's scoring must match for inclusion by introducing randomness",
         ),
 
-    seed: number('seed')
+    seed: string('seed')
         .desc('sets the seed used for the random number generator')
         .default(
             Temporal.Now
                 .zonedDateTimeISO()
                 .startOfDay()
-                .epochMilliseconds,
+                .epochMilliseconds
+                .toString(),
         ),
 
     targetDurationPerBucket: number('target-duration-per-bucket')
@@ -209,6 +214,7 @@ export default command({
                 profile,
                 outputFile,
                 outputFormat,
+                seed,
                 targetDurationPerBucket,
                 ...serializedPackPlaylistBucketsParameters
             },
@@ -272,6 +278,7 @@ export default command({
 
             const { buckets } = packPlaylistBuckets({
                 ...parameters,
+                seed: resolveSeed(seed, resolveTimezone()),
                 tracks,
                 targetDurationPerBucket: targetDurationPerBucket ??
                     determineTargetBucketDuration(
