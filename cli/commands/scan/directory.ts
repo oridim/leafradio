@@ -1,8 +1,8 @@
-import { resolve } from '@std/path';
+import { join, resolve } from '@std/path';
 
 import { command, positional, string } from '@drizzle-team/brocli';
 
-import { FILE_AUDIO_DATA } from '@/shared/configuration/mod.ts';
+import { FILE_NAME_AUDIO_DATA } from '@/shared/configuration/filesystem.ts';
 import { scanDirectory } from '@/shared/pipelines/mod.ts';
 
 import { EXIT_CODES } from '@/cli/utilities/process.ts';
@@ -14,8 +14,7 @@ const COMMAND_OPTIONS = {
         .required(),
 
     audioDataFile: string('audio-data-file')
-        .desc('sets the file to store the audio data lookup')
-        .default(FILE_AUDIO_DATA),
+        .desc('sets the file to store the audio data lookup'),
 } as const;
 
 export default command({
@@ -31,7 +30,7 @@ export default command({
         );
 
         const success = await scanDirectory(
-            audioDataFile,
+            audioDataFile ?? join(resolvedDirectoryPath, FILE_NAME_AUDIO_DATA),
             resolvedDirectoryPath,
         );
 

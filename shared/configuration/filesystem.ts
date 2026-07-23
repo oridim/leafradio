@@ -8,6 +8,8 @@ const { cache } = Adapt();
 
 const XDG_CACHE_HOME = cache();
 
+export const FILE_NAME_AUDIO_DATA = '.leafradio.audio-data.json';
+
 export const DIRECTORY_DATA = join(XDG_CACHE_HOME, APPLICATION_IDENTIFIER);
 
 export const FILE_AUDIO_DATA = join(DIRECTORY_DATA, 'audio-data.json');
