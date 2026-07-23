@@ -4,7 +4,6 @@ import {
     APPLICATION_VERSION,
     initFilesystem,
 } from '@/shared/configuration/mod.ts';
-import { initDatabase } from '@/shared/database/mod.ts';
 
 import type { ConfigureLoggerOptions } from '@/cli/utilities/logger.ts';
 import {
@@ -41,7 +40,6 @@ const GLOBAL_OPTIONS = {
 } as const;
 
 await initFilesystem();
-await initDatabase();
 
 run(
     [
