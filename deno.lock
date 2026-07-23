@@ -1,7 +1,6 @@
 {
   "version": "5",
   "specifiers": {
-    "jsr:@404wolf/xdg-portable@0.1": "0.1.0",
     "jsr:@cliffy/table@^1.2.1": "1.2.1",
     "jsr:@std/bytes@^1.0.6": "1.0.6",
     "jsr:@std/collections@^1.2.0": "1.3.0",
@@ -11,7 +10,6 @@
     "jsr:@std/fs@^1.0.24": "1.0.24",
     "jsr:@std/internal@^1.0.14": "1.0.14",
     "jsr:@std/media-types@^1.1.0": "1.1.0",
-    "jsr:@std/path@^1.0.8": "1.1.6",
     "jsr:@std/path@^1.1.5": "1.1.6",
     "jsr:@std/streams@^1.0.9": "1.1.1",
     "jsr:@std/streams@^1.1.1": "1.1.1",
@@ -21,15 +19,9 @@
     "npm:m3u-parser-generator@^5.0.2": "5.0.2",
     "npm:meyda@^5.6.3": "5.6.3",
     "npm:ohash@^2.0.11": "2.0.11",
-    "npm:pure-rand@^8.4.0": "8.4.0"
+    "npm:pure-rand@^8.4.0": "8.4.2"
   },
   "jsr": {
-    "@404wolf/xdg-portable@0.1.0": {
-      "integrity": "3a54d193601165deede0f84ab0a3e731ad8a1707ac4efa93c2a3db51ff270247",
-      "dependencies": [
-        "jsr:@std/path@^1.0.8"
-      ]
-    },
     "@cliffy/table@1.2.1": {
       "integrity": "be333e62f2c754f8bf75a38c8177515b152040572c9f75298e9bcef1314b82ff",
       "dependencies": [
@@ -38,9 +30,6 @@
     },
     "@std/bytes@1.0.6": {
       "integrity": "f6ac6adbd8ccd99314045f5703e23af0a68d7f7e58364b47d2c7f408aeb5820a"
-    },
-    "@std/collections@1.2.0": {
-      "integrity": "47627a21d3a13138b77fd0e4d790ba9d2e603c3510b686cde6b132fe9aa98a88"
     },
     "@std/collections@1.3.0": {
       "integrity": "eb36b43d784477ea0b476483ac034a14bdd182aff921c812ecf662a1fcef9498"
@@ -61,7 +50,7 @@
       "integrity": "f3061b45b81673a2bece689da041df32d174be064c89eb6397fb5718d3fb7877",
       "dependencies": [
         "jsr:@std/internal",
-        "jsr:@std/path@^1.1.5"
+        "jsr:@std/path"
       ]
     },
     "@std/internal@1.0.14": {
@@ -69,12 +58,6 @@
     },
     "@std/media-types@1.1.0": {
       "integrity": "c9d093f0c05c3512932b330e3cc1fe1d627b301db33a4c2c2185c02471d6eaa4"
-    },
-    "@std/path@1.1.5": {
-      "integrity": "ccea00982ea28c36becaf6e62f855406c76a8c32d462f66f415bbb7d83a271bc",
-      "dependencies": [
-        "jsr:@std/internal"
-      ]
     },
     "@std/path@1.1.6": {
       "integrity": "c68485c2a4dfbb5ae3cc74fae4e8c4e5d874cf8a8ed12927917235c758b46cbe",
@@ -171,8 +154,8 @@
         "babel-plugin-add-module-exports"
       ]
     },
-    "fourier-transform@2.3.0": {
-      "integrity": "sha512-+Ki9tVP1a/1R3svMxeAFOr2FEQhjFdB9szYh2I8IEAUzSUbkV5K/e4hcPVNSjonUllImheK0O/Hoy/VPby6Iig=="
+    "fourier-transform@2.4.1": {
+      "integrity": "sha512-NwMVCmCjVrKH1bu5BTQ9c2OQVpkddLPQiBcd74VJNpbQ7bnwBsQrodLMWgaT4ge+Su0w5Zc6Al0gtHy5lYYIJA=="
     },
     "function-bind@1.1.2": {
       "integrity": "sha512-7XHNxH7qX9xG5mIwxkhumTox/MIRNcOgDrxWsMt2pAr23WHp6MrRlN7FBSFpCpr+oVO0F744iUgR82nJMfG2SA=="
@@ -224,11 +207,11 @@
     "path-parse@1.0.7": {
       "integrity": "sha512-LDJzPVEEEPR+y48z93A0Ed0yXb8pAByGWo/k5YYdYgpY2/2EsOsksJrq7lOHxryrVOn1ejG6oAp8ahvOIQD8sw=="
     },
-    "picomatch@4.0.4": {
-      "integrity": "sha512-QP88BAKvMam/3NxH6vj2o21R6MjxZUAd6nlwAS/pnGvN9IVLocLHxGYIzFhg6fUQ+5th6P4dv4eW9jX3DSIj7A=="
+    "picomatch@4.0.5": {
+      "integrity": "sha512-RvwwcruNjI1ncT5xRakeyS9Lf8lcItv34KD+aif+VH9kduAyfYBipGh12274xtenIPZ119/R9BdTBa8gAwSh0A=="
     },
-    "pure-rand@8.4.0": {
-      "integrity": "sha512-IoM8YF/jY0hiugFo/wOWqfmarlE6J0wc6fDK1PhftMk7MGhVZl88sZimmqBBFomLOCSmcCCpsfj7wXASCpvK9A=="
+    "pure-rand@8.4.2": {
+      "integrity": "sha512-vvuOGgcuPJAirlHvuQw1TrOiw7ptaIXXmIbNuiNOY6lNGJJH49PQ1Kj4nd783nPdQhQdicgOjVI2yI/9BD6/Ng=="
     },
     "readable-stream@1.1.14": {
       "integrity": "sha512-+MeVjFf4L44XUkhM1eYbD8fyEsxcV81pqMSR5gblfcLCHfZvbrqy4/qYHE+/R5HoBUT11WV5O08Cr1n3YXkWVQ==",
@@ -270,13 +253,12 @@
         "stream-parser"
       ]
     },
-    "window-function@3.0.1": {
-      "integrity": "sha512-leNaeoOe+AWGGL7i3UYC1diwxi1XGdypk+mBTdETtj7ptYikvcY1hw2qGsT0zhDBta1L3ynYLW3HjZq8gsLJ1w=="
+    "window-function@3.0.2": {
+      "integrity": "sha512-MyN8QESmxgiFTU5zGjB4vTrhCs6H3d/7u46VaqwIz2qCsU0IP2+OY9oQQe77mHP+5roWh6zkivRnGOha0dbtsA=="
     }
   },
   "workspace": {
     "dependencies": [
-      "jsr:@404wolf/xdg-portable@0.1",
       "jsr:@cliffy/table@^1.2.1",
       "jsr:@std/collections@^1.2.0",
       "jsr:@std/crypto@^1.1.0",

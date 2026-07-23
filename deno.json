@@ -46,7 +46,6 @@
 
     "imports": {
         "@/": "./",
-        "@404wolf/xdg-portable": "jsr:@404wolf/xdg-portable@^0.1.0",
         "@cliffy/table": "jsr:@cliffy/table@^1.2.1",
         "@drizzle-team/brocli": "npm:@drizzle-team/brocli@^0.12.0",
         "@std/collections": "jsr:@std/collections@^1.2.0",
