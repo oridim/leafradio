@@ -149,17 +149,19 @@ const stepCollectFiles = (async (context) => {
 const stepDetermineJobs = ((context) => {
     const { audioFiles, processedMetadata } = context.audioData;
 
-    context.jobs = context.directoryFiles
-        .map((entry) => ({
-            entry,
-            existingAudioFile: audioFiles[entry.filePath],
-        }))
-        .filter(
-            ({ entry, existingAudioFile }) =>
-                !existingAudioFile ||
-                entry.lastModified !== existingAudioFile.lastModified ||
-                !processedMetadata[existingAudioFile.pcmHash],
-        );
+    context.jobs = [];
+
+    for (const entry of context.directoryFiles) {
+        const existingAudioFile = audioFiles[entry.filePath];
+
+        if (
+            !existingAudioFile ||
+            entry.lastModified !== existingAudioFile.lastModified ||
+            !processedMetadata[existingAudioFile.pcmHash]
+        ) {
+            context.jobs.push({ entry, existingAudioFile });
+        }
+    }
 
     return context.jobs.length !== 0;
 }) satisfies ScanPipelineStep;
@@ -176,16 +178,17 @@ const stepHashFiles = (async (context) => {
                     entry,
                     existingAudioFile,
                     pcmHash,
-                    success: true as const,
+                    success: true,
                 };
             } catch (error) {
                 console.error(
                     `bad argument #0 to 'stepHashFiles' (failed to hash file '${filePath}'):`,
                 );
+
                 console.error(error);
 
                 return {
-                    success: false as const,
+                    success: false,
                 };
             }
         }),
@@ -195,29 +198,43 @@ const stepHashFiles = (async (context) => {
 }) satisfies ScanPipelineStep;
 
 const stepCheckExistingHashes = ((context) => {
-    const { processedMetadata } = context.audioData;
+    const { audioData, hashResults } = context;
+    const { processedMetadata } = audioData;
+
     const hashes = new Set<string>();
 
-    for (const result of context.hashResults) {
-        if (result.success && processedMetadata[result.pcmHash]) {
-            hashes.add(result.pcmHash);
+    for (const result of hashResults) {
+        if (!result.success) {
+            continue;
         }
+
+        const { pcmHash } = result;
+
+        if (!processedMetadata[pcmHash]) {
+            continue;
+        }
+
+        hashes.add(pcmHash);
     }
 
     context.existingHashes = hashes;
 }) satisfies ScanPipelineStep;
 
 const stepExtractAudioData = (async (context) => {
+    const { existingHashes } = context;
+
     context.extractionResults = await Promise.all(
         context.hashResults.map(async (result): Promise<ExtractionResult> => {
             if (!result.success) {
-                return { success: false };
+                return {
+                    success: false,
+                };
             }
 
             const { entry, existingAudioFile, pcmHash } = result;
 
             try {
-                const processedData = context.existingHashes.has(pcmHash)
+                const processedData = existingHashes.has(pcmHash)
                     ? undefined
                     : await runAudioProcessingWorker(entry.filePath);
 
@@ -232,51 +249,50 @@ const stepExtractAudioData = (async (context) => {
                 console.error(
                     `bad argument #0 to 'stepExtractAudioData' (failed to process audio for '${entry.filePath}'):`,
                 );
+
                 console.error(error);
 
-                return { success: false };
+                return {
+                    success: false,
+                };
             }
         }),
     );
 }) satisfies ScanPipelineStep;
 
 const stepSaveResults = (async (context) => {
-    for (const result of context.extractionResults) {
+    const { audioData, audioDataFile, extractionResults } = context;
+    const { audioFiles, processedMetadata } = audioData;
+
+    for (const result of extractionResults) {
         if (!result.success) {
             continue;
         }
 
-        const {
-            entry,
-            pcmHash,
-            processedData,
-        } = result;
+        const { entry, pcmHash, processedData: resultProcessedData } = result;
 
         if (!pcmHash) {
             continue;
         }
 
-        if (processedData) {
-            const { audioProperties, musicalFeatures } = processedData;
+        const { filePath, lastModified } = entry;
 
-            context.audioData.processedMetadata[pcmHash] = {
-                audioProperties,
-                musicalFeatures,
+        if (resultProcessedData) {
+            processedMetadata[pcmHash] = {
+                ...resultProcessedData,
                 pcmHash,
             };
         }
 
-        const { filePath: absoluteFilePath, lastModified } = entry;
-
-        context.audioData.audioFiles[absoluteFilePath] = {
-            absoluteFilePath,
+        audioFiles[result.entry.filePath] = {
             lastModified,
             pcmHash,
+            absoluteFilePath: filePath,
         };
     }
 
-    await ensureDir(dirname(context.audioDataFile));
-    await writeAudioData(context.audioDataFile, context.audioData);
+    await ensureDir(dirname(audioDataFile));
+    await writeAudioData(audioDataFile, audioData);
 }) satisfies ScanPipelineStep;
 
 export async function scanDirectory(
@@ -309,6 +325,7 @@ export async function scanDirectory(
         console.error(
             `bad dispatch to 'scanDirectory' (failed to scan directory '${directoryPath}'):`,
         );
+
         console.error(error);
 
         hasError = true;
