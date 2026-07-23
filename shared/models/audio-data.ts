@@ -13,3 +13,12 @@ export async function readAudioData(filePath: string): Promise<AudioData> {
 
     return JSON.parse(text);
 }
+
+export function writeAudioData(
+    filePath: string,
+    audioData: AudioData,
+): Promise<void> {
+    const payload = JSON.stringify(audioData);
+
+    return Deno.writeTextFile(filePath, payload);
+}

@@ -1,16 +1,14 @@
-import { expandGlob } from '@std/fs';
+import { ensureDir, expandGlob } from '@std/fs';
+import { dirname } from '@std/path';
 
 import type { PipelineStep } from '@/lib/utilities/pipeline.ts';
 import { GLOB_AUDIO_FILES } from '@/lib/utilities/path.ts';
 import { makePipeline } from '@/lib/utilities/pipeline.ts';
 import { makeWorkerPool } from '@/lib/workers/mod.ts';
 
-import type { AudioFileEntity } from '@/shared/database/mod.ts';
-import {
-    ENTITY_AUDIO_FILE,
-    ENTITY_MANAGER,
-    ENTITY_PROCESSED_METADATA,
-} from '@/shared/database/mod.ts';
+import type { AudioData, AudioFile } from '@/shared/models/mod.ts';
+import { readAudioData, writeAudioData } from '@/shared/models/mod.ts';
+
 import type {
     AudioProcessingWorkerInput,
     AudioProcessingWorkerOutput,
@@ -31,7 +29,7 @@ type ScanPipelineStep = PipelineStep<ScanPipelineContext>;
 interface ExtractionJob {
     readonly entry: FileEntry;
 
-    readonly existingAudioFile?: AudioFileEntity;
+    readonly existingAudioFile?: AudioFile;
 }
 
 type ExtractionResult = {
@@ -39,7 +37,7 @@ type ExtractionResult = {
 } | {
     readonly entry: FileEntry;
 
-    readonly existingAudioFile?: AudioFileEntity;
+    readonly existingAudioFile?: AudioFile;
 
     readonly processedData?: AudioProcessingWorkerOutput;
 
@@ -59,7 +57,7 @@ type HashJobResult = {
 } | {
     readonly entry: FileEntry;
 
-    readonly existingAudioFile?: AudioFileEntity;
+    readonly existingAudioFile?: AudioFile;
 
     readonly pcmHash: string;
 
@@ -67,6 +65,10 @@ type HashJobResult = {
 };
 
 interface ScanPipelineContext {
+    audioData: AudioData;
+
+    audioDataFile: string;
+
     directoryFiles: FileEntry[];
 
     directoryPath: string;
@@ -83,10 +85,12 @@ interface ScanPipelineContext {
 async function collectDirectoryFiles(
     directoryPath: string,
 ): Promise<FileEntry[]> {
-    const entries = await Array.fromAsync(expandGlob(GLOB_AUDIO_FILES, {
-        followSymlinks: true,
-        root: directoryPath,
-    }));
+    const entries = await Array.fromAsync(
+        expandGlob(GLOB_AUDIO_FILES, {
+            followSymlinks: true,
+            root: directoryPath,
+        }),
+    );
 
     return await Promise.all(
         entries
@@ -111,28 +115,22 @@ async function collectDirectoryFiles(
     );
 }
 
-async function determineExtractionJobs(
+function determineExtractionJobs(
+    audioData: AudioData,
     directoryFiles: FileEntry[],
-): Promise<ExtractionJob[]> {
-    const filePaths = directoryFiles.map((file) => file.filePath);
-
-    const existingAudioFiles = await ENTITY_MANAGER.find(ENTITY_AUDIO_FILE, {
-        absoluteFilePath: { $in: filePaths },
-    });
-
-    const audioFilesMap = new Map(
-        existingAudioFiles.map((file) => [file.absoluteFilePath, file]),
-    );
+): ExtractionJob[] {
+    const { audioFiles, processedMetadata } = audioData;
 
     return directoryFiles
         .map((entry) => ({
             entry,
-            existingAudioFile: audioFilesMap.get(entry.filePath),
+            existingAudioFile: audioFiles[entry.filePath],
         }))
         .filter(
             ({ entry, existingAudioFile }) =>
                 !existingAudioFile ||
-                entry.lastModified !== existingAudioFile.lastModified,
+                entry.lastModified !== existingAudioFile.lastModified ||
+                !processedMetadata[existingAudioFile.pcmHash],
         );
 }
 
@@ -143,7 +141,9 @@ async function extractAudioData(
     return await Promise.all(
         hashResults.map(async (result): Promise<ExtractionResult> => {
             if (!result.success) {
-                return { success: false };
+                return {
+                    success: false,
+                };
             }
 
             const { entry, existingAudioFile, pcmHash } = result;
@@ -164,28 +164,31 @@ async function extractAudioData(
                 console.error(
                     `bad argument #0 to 'extractAudioData' (failed to process audio for '${entry.filePath}'):`,
                 );
+
                 console.error(error);
 
-                return { success: false };
+                return {
+                    success: false,
+                };
             }
         }),
     );
 }
 
-async function fetchExistingHashes(
+function fetchExistingHashes(
+    audioData: AudioData,
     hashResults: HashJobResult[],
-): Promise<Set<string>> {
-    const hashes = hashResults.flatMap((result) =>
-        result.success ? [result.pcmHash] : []
-    );
+): Set<string> {
+    const { processedMetadata } = audioData;
+    const hashes = new Set<string>();
 
-    return new Set(
-        hashes.length === 0 ? [] : (
-            await ENTITY_MANAGER.find(ENTITY_PROCESSED_METADATA, {
-                pcmHash: { $in: hashes },
-            })
-        ).map((metadata) => metadata.pcmHash),
-    );
+    for (const result of hashResults) {
+        if (result.success && processedMetadata[result.pcmHash]) {
+            hashes.add(result.pcmHash);
+        }
+    }
+
+    return hashes;
 }
 
 async function hashFiles(jobs: ExtractionJob[]): Promise<HashJobResult[]> {
@@ -200,16 +203,17 @@ async function hashFiles(jobs: ExtractionJob[]): Promise<HashJobResult[]> {
                     entry,
                     existingAudioFile,
                     pcmHash,
-                    success: true as const,
+                    success: true,
                 };
             } catch (error) {
                 console.error(
                     `bad argument #0 to 'hashFiles' (failed to hash file '${filePath}'):`,
                 );
+
                 console.error(error);
 
                 return {
-                    success: false as const,
+                    success: false,
                 };
             }
         }),
@@ -217,10 +221,10 @@ async function hashFiles(jobs: ExtractionJob[]): Promise<HashJobResult[]> {
 }
 
 async function processExtractionResults(
+    audioDataFile: string,
+    audioData: AudioData,
     results: ExtractionResult[],
 ): Promise<void> {
-    const metadataToUpsert = [];
-
     for (const result of results) {
         if (!result.success) {
             continue;
@@ -228,7 +232,6 @@ async function processExtractionResults(
 
         const {
             entry,
-            existingAudioFile,
             pcmHash,
             processedData,
         } = result;
@@ -240,41 +243,24 @@ async function processExtractionResults(
         if (processedData) {
             const { audioProperties, musicalFeatures } = processedData;
 
-            metadataToUpsert.push({
+            audioData.processedMetadata[pcmHash] = {
                 audioProperties,
                 musicalFeatures,
                 pcmHash,
-            });
+            };
         }
 
         const { filePath: absoluteFilePath, lastModified } = entry;
 
-        if (existingAudioFile) {
-            ENTITY_MANAGER.assign(existingAudioFile, {
-                lastModified,
-                processedMetadata: pcmHash,
-            });
-        } else {
-            ENTITY_MANAGER.persist(
-                ENTITY_MANAGER.create(ENTITY_AUDIO_FILE, {
-                    absoluteFilePath,
-                    lastModified,
-                    processedMetadata: pcmHash,
-                }),
-            );
-        }
+        audioData.audioFiles[absoluteFilePath] = {
+            absoluteFilePath,
+            lastModified,
+            pcmHash,
+        };
     }
 
-    if (metadataToUpsert.length > 0) {
-        ENTITY_MANAGER.persist(
-            await ENTITY_MANAGER.upsertMany(
-                ENTITY_PROCESSED_METADATA,
-                metadataToUpsert,
-            ),
-        );
-    }
-
-    await ENTITY_MANAGER.flush();
+    await ensureDir(dirname(audioDataFile));
+    await writeAudioData(audioDataFile, audioData);
 }
 
 function runAudioProcessingWorker(
@@ -299,14 +285,28 @@ function runHashWorker(filePath: string): Promise<HashWorkerOutput> {
     );
 }
 
+const stepLoadAudioData = (async (context) => {
+    try {
+        context.audioData = await readAudioData(context.audioDataFile);
+    } catch {
+        context.audioData = {
+            audioFiles: {},
+            processedMetadata: {},
+        };
+    }
+}) satisfies ScanPipelineStep;
+
 const stepCollectFiles = (async (context) => {
     context.directoryFiles = await collectDirectoryFiles(context.directoryPath);
 
     return context.directoryFiles.length !== 0;
 }) satisfies ScanPipelineStep;
 
-const stepDetermineJobs = (async (context) => {
-    context.jobs = await determineExtractionJobs(context.directoryFiles);
+const stepDetermineJobs = ((context) => {
+    context.jobs = determineExtractionJobs(
+        context.audioData,
+        context.directoryFiles,
+    );
 
     return context.jobs.length !== 0;
 }) satisfies ScanPipelineStep;
@@ -317,8 +317,11 @@ const stepHashFiles = (async (context) => {
     return context.hashResults.some((result) => result.success);
 }) satisfies ScanPipelineStep;
 
-const stepCheckExistingHashes = (async (context) => {
-    context.existingHashes = await fetchExistingHashes(context.hashResults);
+const stepCheckExistingHashes = ((context) => {
+    context.existingHashes = fetchExistingHashes(
+        context.audioData,
+        context.hashResults,
+    );
 }) satisfies ScanPipelineStep;
 
 const stepExtractAudioData = (async (context) => {
@@ -329,13 +332,22 @@ const stepExtractAudioData = (async (context) => {
 }) satisfies ScanPipelineStep;
 
 const stepSaveResults = (async (context) => {
-    await processExtractionResults(context.extractionResults);
+    await processExtractionResults(
+        context.audioDataFile,
+        context.audioData,
+        context.extractionResults,
+    );
 }) satisfies ScanPipelineStep;
 
-export async function scanDirectory(directoryPath: string): Promise<boolean> {
+export async function scanDirectory(
+    audioDataFile: string,
+    directoryPath: string,
+): Promise<boolean> {
     let hasError = false;
 
     const pipeline = makePipeline<ScanPipelineContext>({
+        audioData: { audioFiles: {}, processedMetadata: {} },
+        audioDataFile,
         directoryFiles: [],
         directoryPath,
         existingHashes: new Set(),
@@ -343,6 +355,7 @@ export async function scanDirectory(directoryPath: string): Promise<boolean> {
         hashResults: [],
         jobs: [],
     })
+        .addStep(stepLoadAudioData)
         .addStep(stepCollectFiles)
         .addStep(stepDetermineJobs)
         .addStep(stepHashFiles)
