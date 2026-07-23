@@ -1,6 +1,7 @@
 import * as CSV from '@std/csv';
 import type { WalkEntry } from '@std/fs';
 import { expandGlob } from '@std/fs';
+import { join, relative, resolve } from '@std/path';
 
 import { Table } from '@cliffy/table';
 import { command, number, positional, string } from '@drizzle-team/brocli';
@@ -24,7 +25,7 @@ import { GLOB_AUDIO_FILES } from '@/lib/utilities/path.ts';
 import { resolveSeed } from '@/lib/utilities/random.ts';
 import { truncateCenter } from '@/lib/utilities/string.ts';
 
-import { FILE_AUDIO_DATA } from '@/shared/configuration/mod.ts';
+import { FILE_NAME_AUDIO_DATA } from '@/shared/configuration/filesystem.ts';
 import type { AudioData } from '@/shared/models/mod.ts';
 import { readAudioData } from '@/shared/models/mod.ts';
 
@@ -49,8 +50,7 @@ const COMMAND_OPTIONS = {
         .required(),
 
     audioDataFile: string('audio-data-file')
-        .desc('sets the file to use as the audio data lookup')
-        .default(FILE_AUDIO_DATA),
+        .desc('sets the file to use as the audio data lookup'),
 
     outputFile: string('output-file')
         .desc('sets the file to output the playlist to'),
@@ -206,6 +206,7 @@ function formatOutput(outputFormat: OutputFormats, buckets: Bucket[]): string {
 }
 
 function* walkDirectoryTracks(
+    directoryPath: string,
     entries: Iterable<WalkEntry>,
     audioData: AudioData,
     minimumDuration: number,
@@ -219,7 +220,8 @@ function* walkDirectoryTracks(
             continue;
         }
 
-        const audioFile = audioFiles[entry.path];
+        const relativePath = relative(directoryPath, path);
+        const audioFile = audioFiles[relativePath];
         const pcmHash = audioFile?.pcmHash;
 
         if (!pcmHash) {
@@ -260,12 +262,18 @@ export default command({
             ...serializedPackPlaylistBucketsParameters
         },
     ) => {
+        const resolvedDirectoryPath = resolve(directoryPath);
+        const resolvedAudioDataFile = audioDataFile ??
+            join(resolvedDirectoryPath, FILE_NAME_AUDIO_DATA);
+
         let audioData: AudioData;
 
         try {
-            audioData = await readAudioData(audioDataFile);
+            audioData = await readAudioData(resolvedAudioDataFile);
         } catch {
-            LOGGER.error(`Failed to load audio data file '${audioDataFile}'.`);
+            LOGGER.error(
+                `Failed to load audio data file '${resolvedAudioDataFile}'.`,
+            );
             Deno.exit(EXIT_CODES.invalidOptions);
         }
 
@@ -283,12 +291,13 @@ export default command({
         const entries = await Array.fromAsync(
             expandGlob(GLOB_AUDIO_FILES, {
                 followSymlinks: true,
-                root: directoryPath,
+                root: resolvedDirectoryPath,
             }),
         );
 
         const tracks = Array.from(
             walkDirectoryTracks(
+                resolvedDirectoryPath,
                 entries,
                 audioData,
                 minimumDuration,
