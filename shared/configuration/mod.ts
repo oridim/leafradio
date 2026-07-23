@@ -5,6 +5,6 @@ export {
 
 export {
     DIRECTORY_DATA,
-    FILE_DATABASE,
+    FILE_AUDIO_DATA,
     initFilesystem,
 } from '@/shared/configuration/filesystem.ts';
