@@ -1,5 +1,5 @@
 import { ensureDir, expandGlob } from '@std/fs';
-import { dirname } from '@std/path';
+import { dirname, relative } from '@std/path';
 
 import type { PipelineStep } from '@/lib/utilities/pipeline.ts';
 import { GLOB_AUDIO_FILES } from '@/lib/utilities/path.ts';
@@ -47,9 +47,11 @@ type ExtractionResult = {
 };
 
 interface FileEntry {
-    readonly filePath: string;
+    readonly absoluteFilePath: string;
 
     readonly lastModified: number;
+
+    readonly relativePath: string;
 }
 
 type HashJobResult = {
@@ -116,18 +118,22 @@ const stepLoadAudioData = (async (context) => {
 }) satisfies ScanPipelineStep;
 
 const stepCollectFiles = (async (context) => {
-    const entries = await Array.fromAsync(expandGlob(GLOB_AUDIO_FILES, {
-        followSymlinks: true,
-        root: context.directoryPath,
-    }));
+    const { directoryPath } = context;
+
+    const entries = await Array.fromAsync(
+        expandGlob(GLOB_AUDIO_FILES, {
+            followSymlinks: true,
+            root: directoryPath,
+        }),
+    );
 
     context.directoryFiles = await Promise.all(
         entries
             .filter((entry) => entry.isFile)
             .map(
                 async (entry) => {
-                    const { path: filePath } = entry;
-                    const { mtime } = await Deno.stat(filePath);
+                    const { path: absoluteFilePath } = entry;
+                    const { mtime } = await Deno.stat(absoluteFilePath);
 
                     if (mtime === null) {
                         throw new Error(
@@ -136,8 +142,12 @@ const stepCollectFiles = (async (context) => {
                     }
 
                     return {
-                        filePath,
+                        absoluteFilePath,
                         lastModified: mtime.getTime(),
+                        relativePath: relative(
+                            directoryPath,
+                            absoluteFilePath,
+                        ),
                     };
                 },
             ),
@@ -147,32 +157,33 @@ const stepCollectFiles = (async (context) => {
 }) satisfies ScanPipelineStep;
 
 const stepDetermineJobs = ((context) => {
-    const { audioFiles, processedMetadata } = context.audioData;
-
-    context.jobs = [];
+    const { audioData, jobs = [] } = context;
+    const { audioFiles, processedMetadata } = audioData;
 
     for (const entry of context.directoryFiles) {
-        const existingAudioFile = audioFiles[entry.filePath];
+        const { lastModified, relativePath } = entry;
+        const existingAudioFile = audioFiles[relativePath];
 
         if (
             !existingAudioFile ||
-            entry.lastModified !== existingAudioFile.lastModified ||
+            lastModified !== existingAudioFile.lastModified ||
             !processedMetadata[existingAudioFile.pcmHash]
         ) {
-            context.jobs.push({ entry, existingAudioFile });
+            jobs.push({ entry, existingAudioFile });
         }
     }
 
+    context.jobs = jobs;
     return context.jobs.length !== 0;
 }) satisfies ScanPipelineStep;
 
 const stepHashFiles = (async (context) => {
     context.hashResults = await Promise.all(
         context.jobs.map(async ({ entry, existingAudioFile }) => {
-            const { filePath } = entry;
+            const { absoluteFilePath } = entry;
 
             try {
-                const { pcmHash } = await runHashWorker(filePath);
+                const { pcmHash } = await runHashWorker(absoluteFilePath);
 
                 return {
                     entry,
@@ -182,7 +193,7 @@ const stepHashFiles = (async (context) => {
                 };
             } catch (error) {
                 console.error(
-                    `bad argument #0 to 'stepHashFiles' (failed to hash file '${filePath}'):`,
+                    `bad argument #0 to 'stepHashFiles' (failed to hash file '${absoluteFilePath}'):`,
                 );
 
                 console.error(error);
@@ -236,7 +247,7 @@ const stepExtractAudioData = (async (context) => {
             try {
                 const processedData = existingHashes.has(pcmHash)
                     ? undefined
-                    : await runAudioProcessingWorker(entry.filePath);
+                    : await runAudioProcessingWorker(entry.absoluteFilePath);
 
                 return {
                     entry,
@@ -247,7 +258,7 @@ const stepExtractAudioData = (async (context) => {
                 };
             } catch (error) {
                 console.error(
-                    `bad argument #0 to 'stepExtractAudioData' (failed to process audio for '${entry.filePath}'):`,
+                    `bad argument #0 to 'stepExtractAudioData' (failed to process audio for '${entry.absoluteFilePath}'):`,
                 );
 
                 console.error(error);
@@ -275,7 +286,7 @@ const stepSaveResults = (async (context) => {
             continue;
         }
 
-        const { filePath, lastModified } = entry;
+        const { lastModified, relativePath } = entry;
 
         if (resultProcessedData) {
             processedMetadata[pcmHash] = {
@@ -284,10 +295,10 @@ const stepSaveResults = (async (context) => {
             };
         }
 
-        audioFiles[result.entry.filePath] = {
+        audioFiles[relativePath] = {
+            filePath: relativePath,
             lastModified,
             pcmHash,
-            absoluteFilePath: filePath,
         };
     }
 

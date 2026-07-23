@@ -1,5 +1,5 @@
 export interface AudioFile {
-    readonly absoluteFilePath: string;
+    readonly filePath: string;
 
     readonly lastModified: number;
 
