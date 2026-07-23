@@ -4,7 +4,7 @@ import COMMAND_SCAN_DIRECTORY from '@/cli/commands/scan/directory.ts';
 
 export default command({
     name: 'scan',
-    desc: 'Handles music repository database management.',
+    desc: 'Handles music scanning into audio data cache.',
 
     subcommands: [
         COMMAND_SCAN_DIRECTORY,

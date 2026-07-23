@@ -11,7 +11,3 @@ const XDG_CACHE_HOME = cache();
 export const DIRECTORY_DATA = join(XDG_CACHE_HOME, APPLICATION_IDENTIFIER);
 
 export const FILE_AUDIO_DATA = join(DIRECTORY_DATA, 'audio-data.json');
-
-export async function initFilesystem(): Promise<void> {
-    await Promise.all([]);
-}

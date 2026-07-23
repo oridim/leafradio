@@ -1,9 +1,6 @@
 import { boolean, run, string } from '@drizzle-team/brocli';
 
-import {
-    APPLICATION_VERSION,
-    initFilesystem,
-} from '@/shared/configuration/mod.ts';
+import { APPLICATION_VERSION } from '@/shared/configuration/mod.ts';
 
 import type { ConfigureLoggerOptions } from '@/cli/utilities/logger.ts';
 import {
@@ -38,8 +35,6 @@ const GLOBAL_OPTIONS = {
     verbose: boolean('verbose')
         .desc('enables detailed debug log output'),
 } as const;
-
-await initFilesystem();
 
 run(
     [
