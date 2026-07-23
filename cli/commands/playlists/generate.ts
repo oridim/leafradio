@@ -1,4 +1,5 @@
 import * as CSV from '@std/csv';
+import type { WalkEntry } from '@std/fs';
 import { expandGlob } from '@std/fs';
 
 import { Table } from '@cliffy/table';
@@ -204,6 +205,43 @@ function formatOutput(outputFormat: OutputFormats, buckets: Bucket[]): string {
     }
 }
 
+function* walkDirectoryTracks(
+    entries: Iterable<WalkEntry>,
+    audioData: AudioData,
+    minimumDuration: number,
+): Generator<Track> {
+    const { audioFiles, processedMetadata } = audioData;
+
+    for (const entry of entries) {
+        const { isFile, path } = entry;
+
+        if (!isFile) {
+            continue;
+        }
+
+        const audioFile = audioFiles[entry.path];
+        const pcmHash = audioFile?.pcmHash;
+
+        if (!pcmHash) {
+            continue;
+        }
+
+        const metadata = processedMetadata[pcmHash];
+
+        if (!metadata || metadata.audioProperties.duration < minimumDuration) {
+            continue;
+        }
+
+        const { audioProperties, musicalFeatures } = metadata;
+
+        yield {
+            id: path,
+            audioProperties,
+            musicalFeatures,
+        };
+    }
+}
+
 export default command({
     name: 'generate',
     desc: 'Generates a playlist out of audio files in a directory.',
@@ -231,8 +269,6 @@ export default command({
             Deno.exit(EXIT_CODES.invalidOptions);
         }
 
-        const { audioFiles, processedMetadata } = audioData;
-
         const parameters = {
             ...(profile ? determineProfile(profile as ProfileNames) : {}),
             ...deserializePackPlaylistBucketsParameters(
@@ -251,49 +287,13 @@ export default command({
             }),
         );
 
-        const absoluteFilePaths = entries
-            .filter((entry) => entry.isFile)
-            .map((entry) => [entry.path, true]);
-
-        const absoluteFilePathsLookup = Object.fromEntries(absoluteFilePaths);
-
-        const tracks = Object.entries(audioFiles)
-            .filter(
-                ([absoluteFilePath, audioFile]) => {
-                    if (!absoluteFilePathsLookup[absoluteFilePath]) {
-                        return false;
-                    }
-
-                    const pcmHash = audioFile?.pcmHash;
-
-                    if (!pcmHash) {
-                        return false;
-                    }
-
-                    const metadata = processedMetadata[pcmHash];
-
-                    if (!metadata) {
-                        return false;
-                    }
-
-                    return metadata.audioProperties.duration >= minimumDuration;
-                },
-            )
-            .map((
-                [
-                    absoluteFilePath,
-                    audioFile,
-                ],
-            ) => {
-                const { audioProperties, musicalFeatures } =
-                    processedMetadata[audioFile!.pcmHash]!;
-
-                return {
-                    id: absoluteFilePath,
-                    audioProperties,
-                    musicalFeatures,
-                };
-            }) satisfies Track[];
+        const tracks = Array.from(
+            walkDirectoryTracks(
+                entries,
+                audioData,
+                minimumDuration,
+            ),
+        );
 
         if (tracks.length === 0) {
             LOGGER.info('No files were included, skipping generation.');
@@ -301,12 +301,7 @@ export default command({
             return;
         }
 
-        const skippedAudioFiles = absoluteFilePaths.length - tracks.length;
-
         LOGGER.info(`'${tracks.length}' audio files were included.`);
-        LOGGER.info(
-            `'${skippedAudioFiles}' audio files were skipped due to being unprocessed or under-duration.`,
-        );
 
         const { buckets } = packPlaylistBuckets({
             ...parameters,
