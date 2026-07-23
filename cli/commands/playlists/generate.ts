@@ -5,7 +5,7 @@ import { Table } from '@cliffy/table';
 import { command, number, positional, string } from '@drizzle-team/brocli';
 import { M3uMedia, M3uPlaylist } from 'm3u-parser-generator';
 
-import type { Bucket, Track } from '@/lib/playlist-packer/mod.ts';
+import type { Bucket, ProfileNames, Track } from '@/lib/playlist-packer/mod.ts';
 import {
     DEFAULT_SERIALIZED_PACK_PLAYLIST_BUCKETS_PARAMETERS,
     deserializePackPlaylistBucketsParameters,
@@ -23,13 +23,12 @@ import { GLOB_AUDIO_FILES } from '@/lib/utilities/path.ts';
 import { resolveSeed } from '@/lib/utilities/random.ts';
 import { truncateCenter } from '@/lib/utilities/string.ts';
 
-import {
-    ENTITY_AUDIO_FILE,
-    ENTITY_MANAGER,
-    withEntityManager,
-} from '@/shared/database/mod.ts';
+import { FILE_AUDIO_DATA } from '@/shared/configuration/mod.ts';
+import type { AudioData } from '@/shared/models/mod.ts';
+import { readAudioData } from '@/shared/models/mod.ts';
 
 import LOGGER from '@/cli/utilities/logger.ts';
+import { EXIT_CODES } from '@/cli/utilities/process.ts';
 
 const OUTPUT_FORMATS = {
     csv: 'csv',
@@ -47,6 +46,10 @@ const COMMAND_OPTIONS = {
     directoryPath: positional('directory-path')
         .desc('directory path to build a playlist from')
         .required(),
+
+    audioDataFile: string('audio-data-file')
+        .desc('sets the file to use as the audio data lookup')
+        .default(FILE_AUDIO_DATA),
 
     outputFile: string('output-file')
         .desc('sets the file to output the playlist to'),
@@ -206,96 +209,127 @@ export default command({
     desc: 'Generates a playlist out of audio files in a directory.',
     options: COMMAND_OPTIONS,
 
-    handler: withEntityManager(
-        async (
-            {
-                directoryPath,
-                minimumDuration,
-                profile,
-                outputFile,
-                outputFormat,
-                seed,
-                targetDurationPerBucket,
-                ...serializedPackPlaylistBucketsParameters
-            },
-        ) => {
-            const parameters = {
-                ...(profile ? determineProfile(profile) : {}),
-                ...deserializePackPlaylistBucketsParameters(
-                    Object.fromEntries(
-                        Object
-                            .entries(serializedPackPlaylistBucketsParameters)
-                            .filter(([_key, value]) => value !== undefined),
-                    ),
+    handler: async (
+        {
+            audioDataFile,
+            directoryPath,
+            minimumDuration,
+            profile,
+            outputFile,
+            outputFormat,
+            seed,
+            targetDurationPerBucket,
+            ...serializedPackPlaylistBucketsParameters
+        },
+    ) => {
+        let audioData: AudioData;
+
+        try {
+            audioData = await readAudioData(audioDataFile);
+        } catch {
+            LOGGER.error(`Failed to load audio data file '${audioDataFile}'.`);
+            Deno.exit(EXIT_CODES.invalidOptions);
+        }
+
+        const { audioFiles, processedMetadata } = audioData;
+
+        const parameters = {
+            ...(profile ? determineProfile(profile as ProfileNames) : {}),
+            ...deserializePackPlaylistBucketsParameters(
+                Object.fromEntries(
+                    Object
+                        .entries(serializedPackPlaylistBucketsParameters)
+                        .filter(([_key, value]) => value !== undefined),
                 ),
-            };
+            ),
+        };
 
-            const entries = await Array.fromAsync(
-                expandGlob(GLOB_AUDIO_FILES, {
-                    followSymlinks: true,
-                    root: directoryPath,
-                }),
-            );
+        const entries = await Array.fromAsync(
+            expandGlob(GLOB_AUDIO_FILES, {
+                followSymlinks: true,
+                root: directoryPath,
+            }),
+        );
 
-            const absoluteFilePaths = entries
-                .filter((entry) => entry.isFile)
-                .map((entry) => entry.path);
+        const absoluteFilePaths = entries
+            .filter((entry) => entry.isFile)
+            .map((entry) => [entry.path, true]);
 
-            const audioFiles = await ENTITY_MANAGER.find(
-                ENTITY_AUDIO_FILE,
-                { absoluteFilePath: { $in: absoluteFilePaths } },
-                { populate: ['processedMetadata'] },
-            );
+        const absoluteFilePathsLookup = Object.fromEntries(absoluteFilePaths);
 
-            const tracks = audioFiles
-                .filter(
-                    ({ processedMetadata: { audioProperties } }) =>
-                        audioProperties.duration >= minimumDuration,
-                )
-                .map((
-                    {
-                        absoluteFilePath,
-                        processedMetadata: { audioProperties, musicalFeatures },
-                    },
-                ) => ({
+        const tracks = Object.entries(audioFiles)
+            .filter(
+                ([absoluteFilePath, audioFile]) => {
+                    if (!absoluteFilePathsLookup[absoluteFilePath]) {
+                        return false;
+                    }
+
+                    const pcmHash = audioFile?.pcmHash;
+
+                    if (!pcmHash) {
+                        return false;
+                    }
+
+                    const metadata = processedMetadata[pcmHash];
+
+                    if (!metadata) {
+                        return false;
+                    }
+
+                    return metadata.audioProperties.duration >= minimumDuration;
+                },
+            )
+            .map((
+                [
+                    absoluteFilePath,
+                    audioFile,
+                ],
+            ) => {
+                const { audioProperties, musicalFeatures } =
+                    processedMetadata[audioFile!.pcmHash]!;
+
+                return {
                     id: absoluteFilePath,
                     audioProperties,
                     musicalFeatures,
-                })) satisfies Track[];
+                };
+            }) satisfies Track[];
 
-            if (tracks.length === 0) {
-                LOGGER.info('No files were included, skipping generation.');
+        if (tracks.length === 0) {
+            LOGGER.info('No files were included, skipping generation.');
 
-                return;
-            }
+            return;
+        }
 
-            const skippedAudioFiles = absoluteFilePaths.length - tracks.length;
+        const skippedAudioFiles = absoluteFilePaths.length - tracks.length;
 
-            LOGGER.info(`'${tracks.length}' audio files were included.`);
-            LOGGER.info(
-                `'${skippedAudioFiles}' audio files were skipped due to being unprocessed or under-duration.`,
-            );
+        LOGGER.info(`'${tracks.length}' audio files were included.`);
+        LOGGER.info(
+            `'${skippedAudioFiles}' audio files were skipped due to being unprocessed or under-duration.`,
+        );
 
-            const { buckets } = packPlaylistBuckets({
-                ...parameters,
-                seed: resolveSeed(seed, resolveTimezone()),
-                tracks,
-                targetDurationPerBucket: targetDurationPerBucket ??
-                    determineTargetBucketDuration(
-                        parameters.numberOfBuckets ??
-                            DEFAULT_SERIALIZED_PACK_PLAYLIST_BUCKETS_PARAMETERS
-                                .numberOfBuckets,
-                    ),
-            });
+        const { buckets } = packPlaylistBuckets({
+            ...parameters,
+            seed: resolveSeed(seed, resolveTimezone()),
+            tracks,
+            targetDurationPerBucket: targetDurationPerBucket ??
+                determineTargetBucketDuration(
+                    parameters.numberOfBuckets ??
+                        DEFAULT_SERIALIZED_PACK_PLAYLIST_BUCKETS_PARAMETERS
+                            .numberOfBuckets,
+                ),
+        });
 
-            const formattedOutput = formatOutput(outputFormat, buckets);
+        const formattedOutput = formatOutput(
+            outputFormat as OutputFormats,
+            buckets,
+        );
 
-            if (outputFile) {
-                await Deno.writeTextFile(outputFile, formattedOutput);
-                return;
-            }
+        if (outputFile) {
+            await Deno.writeTextFile(outputFile, formattedOutput);
+            return;
+        }
 
-            console.log(formattedOutput);
-        },
-    ),
+        console.log(formattedOutput);
+    },
 });
