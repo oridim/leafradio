@@ -1,11 +1,11 @@
 import * as CSV from '@std/csv';
 import type { WalkEntry } from '@std/fs';
 import { expandGlob } from '@std/fs';
-import { join, relative, resolve } from '@std/path';
+import { extname, join, relative, resolve } from '@std/path';
 
 import { Table } from '@cliffy/table';
 import { command, number, positional, string } from '@drizzle-team/brocli';
-import { M3uMedia, M3uPlaylist } from 'm3u-parser-generator';
+import { M3uMedia, M3uParser, M3uPlaylist } from 'm3u-parser-generator';
 
 import type { Bucket, ProfileNames, Track } from '@/lib/playlist-packer/mod.ts';
 import {
@@ -49,8 +49,18 @@ const COMMAND_OPTIONS = {
         .desc('directory path to build a playlist from')
         .required(),
 
+    allowedTracks: string('allowed-tracks')
+        .desc(
+            'sets a file (.csv, .json, .m3u, .m3u8) containing tracks to exclusively allow',
+        ),
+
     audioDataFile: string('audio-data-file')
         .desc('sets the file to use as the audio data lookup'),
+
+    disallowedTracks: string('disallowed-tracks')
+        .desc(
+            'sets a file (.csv, .json, .m3u, .m3u8) containing tracks to exclude',
+        ),
 
     outputFile: string('output-file')
         .desc('sets the file to output the playlist to'),
@@ -205,11 +215,69 @@ function formatOutput(outputFormat: OutputFormats, buckets: Bucket[]): string {
     }
 }
 
+async function readTrackListFile(filePath: string): Promise<Set<string>> {
+    const resolvedPath = resolve(filePath);
+    const content = await Deno.readTextFile(resolvedPath);
+    const extension = extname(resolvedPath).toLowerCase();
+    const trackPaths = new Set<string>();
+
+    switch (extension) {
+        case '.csv': {
+            const tracks = CSV.parse(content, {
+                columns: ['bucketID', 'duration', 'filePath'],
+                skipFirstRow: true,
+            });
+
+            for (const track of tracks) {
+                trackPaths.add(
+                    resolve(track.filePath),
+                );
+            }
+
+            break;
+        }
+
+        case '.json': {
+            const records = JSON.parse(content) as { filePath: string }[];
+
+            for (const record of records) {
+                trackPaths.add(
+                    resolve(record.filePath),
+                );
+            }
+
+            break;
+        }
+
+        case '.m3u':
+        case '.m3u8': {
+            const parser = new M3uParser();
+            const playlist = parser.parse(content);
+
+            for (const media of playlist.medias) {
+                trackPaths.add(
+                    resolve(media.location),
+                );
+            }
+            break;
+        }
+
+        default:
+            throw new Error(
+                `Unsupported track list file format '${extension}'.`,
+            );
+    }
+
+    return trackPaths;
+}
+
 function* walkDirectoryTracks(
     directoryPath: string,
     entries: Iterable<WalkEntry>,
     audioData: AudioData,
     minimumDuration: number,
+    allowedTracks?: Set<string>,
+    disallowedTracks?: Set<string>,
 ): Generator<Track> {
     const { audioFiles, processedMetadata } = audioData;
 
@@ -217,6 +285,16 @@ function* walkDirectoryTracks(
         const { isFile, path } = entry;
 
         if (!isFile) {
+            continue;
+        }
+
+        const resolvedPath = resolve(path);
+
+        if (allowedTracks && !allowedTracks.has(resolvedPath)) {
+            continue;
+        }
+
+        if (disallowedTracks && disallowedTracks.has(resolvedPath)) {
             continue;
         }
 
@@ -251,8 +329,10 @@ export default command({
 
     handler: async (
         {
+            allowedTracks: allowedTracksFile,
             audioDataFile,
             directoryPath,
+            disallowedTracks: disallowedTracksFile,
             minimumDuration,
             profile,
             outputFile,
@@ -274,7 +354,38 @@ export default command({
             LOGGER.error(
                 `Failed to load audio data file '${resolvedAudioDataFile}'.`,
             );
+
             Deno.exit(EXIT_CODES.invalidOptions);
+        }
+
+        let allowedTracks: Set<string> | undefined;
+
+        if (allowedTracksFile) {
+            try {
+                allowedTracks = await readTrackListFile(allowedTracksFile);
+            } catch {
+                LOGGER.error(
+                    `Failed to load allowed tracks file '${allowedTracksFile}'.`,
+                );
+
+                Deno.exit(EXIT_CODES.invalidOptions);
+            }
+        }
+
+        let disallowedTracks: Set<string> | undefined;
+
+        if (disallowedTracksFile) {
+            try {
+                disallowedTracks = await readTrackListFile(
+                    disallowedTracksFile,
+                );
+            } catch {
+                LOGGER.error(
+                    `Failed to load disallowed tracks file '${disallowedTracksFile}'.`,
+                );
+
+                Deno.exit(EXIT_CODES.invalidOptions);
+            }
         }
 
         const parameters = {
@@ -301,6 +412,8 @@ export default command({
                 entries,
                 audioData,
                 minimumDuration,
+                allowedTracks,
+                disallowedTracks,
             ),
         );
 
