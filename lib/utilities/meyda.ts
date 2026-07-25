@@ -1,8 +1,6 @@
+import type { AudioInstance } from 'audio';
 import type { MeydaAudioFeature, MeydaFeaturesObject } from 'meyda';
 import Meyda from 'meyda';
-
-import type { DecodedAudioData } from '@/lib/utilities/audio.ts';
-import { chunkAudioData } from '@/lib/utilities/audio.ts';
 
 // **HACK:** `meyda` doesn't properly type its default export.
 const MEYDA = Meyda as unknown as Meyda.default;
@@ -54,6 +52,25 @@ function addValues<T extends MeydaFeature>(target: T, source: T): T {
     }
 
     return target;
+}
+
+function* chunkAudioData(
+    audioData: Float32Array<ArrayBuffer>,
+    bufferSize: number,
+    hopSize: number = bufferSize,
+): Generator<Float32Array<ArrayBuffer>> {
+    const frameMaximumIndex = audioData.length - bufferSize;
+
+    for (
+        let frameStartIndex = 0;
+        frameStartIndex <= frameMaximumIndex;
+        frameStartIndex += hopSize
+    ) {
+        yield audioData.slice(
+            frameStartIndex,
+            frameStartIndex + bufferSize,
+        );
+    }
 }
 
 function createEmptyShape<T extends MeydaFeature>(value: T): T {
@@ -116,14 +133,39 @@ function divideValues<T extends MeydaFeature>(
     return target;
 }
 
-export function computeAverageFeatures<T extends MeydaAudioFeature>(
-    decodedAudioData: DecodedAudioData,
+function* extractMeydaFeatures<T extends MeydaAudioFeature>(
+    audioData: Float32Array<ArrayBuffer>,
     features: T[],
     bufferSize: number,
     hopSize: number = bufferSize,
-): Pick<MeydaFeatures, T> | null {
+): Generator<ExtractedMeydaFeatures<T>> {
+    const generator = chunkAudioData(audioData, bufferSize, hopSize);
+
+    for (const sample of generator) {
+        const extractedFeatures = MEYDA.extract(features, sample);
+
+        if (!extractedFeatures) continue;
+
+        yield extractedFeatures as Pick<MeydaFeatures, T>;
+    }
+}
+
+export async function computeAverageFeatures<T extends MeydaAudioFeature>(
+    audioInstance: AudioInstance,
+    features: T[],
+    bufferSize: number,
+    hopSize: number = bufferSize,
+): Promise<Pick<MeydaFeatures, T> | null> {
+    const pcmData = await audioInstance.read({ channel: 0 });
+    const rawData = Array.isArray(pcmData) ? pcmData[0] : pcmData;
+
+    const audioData =
+        rawData instanceof Float32Array && rawData.buffer instanceof ArrayBuffer
+            ? (rawData as Float32Array<ArrayBuffer>)
+            : new Float32Array(rawData || 0);
+
     const generator = extractMeydaFeatures(
-        decodedAudioData.audioData,
+        audioData,
         features,
         bufferSize,
         hopSize,
@@ -160,21 +202,4 @@ export function computeAverageFeatures<T extends MeydaAudioFeature>(
     }
 
     return accumulatedFeatures as Pick<MeydaFeatures, T>;
-}
-
-export function* extractMeydaFeatures<T extends MeydaAudioFeature>(
-    audioData: Float32Array<ArrayBuffer>,
-    features: T[],
-    bufferSize: number,
-    hopSize: number = bufferSize,
-): Generator<ExtractedMeydaFeatures<T>> {
-    const generator = chunkAudioData(audioData, bufferSize, hopSize);
-
-    for (const sample of generator) {
-        const extractedFeatures = MEYDA.extract(features, sample);
-
-        if (!extractedFeatures) continue;
-
-        yield extractedFeatures as Pick<MeydaFeatures, T>;
-    }
 }

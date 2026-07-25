@@ -1,5 +1,5 @@
-import type { DecodedAudioData } from '@/lib/utilities/audio.ts';
-import { downmixToMono } from '@/lib/utilities/audio.ts';
+import type { AudioInstance } from 'audio';
+
 import { computeAverageFeatures } from '@/lib/utilities/meyda.ts';
 
 import type {
@@ -31,7 +31,7 @@ export interface ExtractMusicalFeaturesOptions {
 }
 
 export async function extractMusicalFeatures(
-    decodedAudioData: DecodedAudioData,
+    audioInstance: AudioInstance,
     options: ExtractMusicalFeaturesOptions = {},
 ): Promise<MusicalFeatures> {
     const {
@@ -44,9 +44,9 @@ export async function extractMusicalFeatures(
         ...options.featureExtraction,
     } as Required<FeatureExtractionOptions>;
 
-    const downmixedAudioData = await downmixToMono(decodedAudioData);
-    const averageFeatures = computeAverageFeatures(
-        downmixedAudioData,
+    const downmixedAudioInstance = audioInstance.remix(1);
+    const averageFeatures = await computeAverageFeatures(
+        downmixedAudioInstance,
         [
             'chroma',
             'complexSpectrum',
@@ -63,7 +63,7 @@ export async function extractMusicalFeatures(
         );
     }
 
-    const bpm = await determineBeatsPerMinute(downmixedAudioData);
+    const bpm = await determineBeatsPerMinute(downmixedAudioInstance);
     const key = determineKey(averageFeatures.chroma);
 
     const { arousal, valence } = determineEmotionScores({

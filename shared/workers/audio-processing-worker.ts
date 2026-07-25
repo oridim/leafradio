@@ -1,10 +1,11 @@
 /// <reference no-default-lib="true" />
 /// <reference lib="deno.worker" />
 
+import audio from 'audio';
+
 import type { AudioProperties } from '@/lib/playlist-packer/types.ts';
 import type { MusicalFeatures } from '@/lib/music/mod.ts';
 import { extractMusicalFeatures } from '@/lib/music/mod.ts';
-import { decodeAudioFile } from '@/lib/utilities/audio.ts';
 import type { WorkerRunFunction } from '@/lib/workers/mod.ts';
 
 export interface AudioProcessingWorkerInput {
@@ -20,12 +21,14 @@ export interface AudioProcessingWorkerOutput {
 export default (async (input) => {
     const { filePath } = input;
 
-    const audioBuffer = await decodeAudioFile(filePath);
-    const extractedMusicalFeatures = await extractMusicalFeatures(audioBuffer);
+    const audioInstance = await audio(filePath);
+    const extractedMusicalFeatures = await extractMusicalFeatures(
+        audioInstance,
+    );
 
     return {
         audioProperties: {
-            duration: audioBuffer.duration,
+            duration: audioInstance.duration * 1000,
         },
 
         musicalFeatures: extractedMusicalFeatures,
