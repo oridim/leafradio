@@ -1,4 +1,3 @@
-import { typeByExtension } from '@std/media-types';
 import { toBytes } from '@std/streams';
 
 export interface BiquadFilterOptions {
@@ -385,49 +384,4 @@ export async function probeAudioFile(
     const file = await Deno.open(filePath);
 
     return probeAudioBytes(file.readable);
-}
-
-export async function streamAudioFile(
-    filePath: URL | string,
-    options: StreamAudioFileOptions = {},
-): Promise<StreamedAudioData> {
-    const { seek = 0 } = options;
-
-    const { format } = await probeAudioFile(filePath);
-
-    const mimeType = typeByExtension(`.${format}`) ?? `audio/${format}`;
-
-    if (seek <= 0) {
-        const file = await Deno.open(filePath, { read: true });
-
-        return {
-            mimeType,
-            stream: file.readable,
-        };
-    }
-
-    const command = new Deno.Command('ffmpeg', {
-        args: [
-            '-loglevel',
-            'error',
-            '-ss',
-            seek.toString(),
-            '-i',
-            filePath.toString(),
-            '-codec:a',
-            'copy',
-            '-f',
-            format,
-            'pipe:1',
-        ],
-        stdout: 'piped',
-        stderr: 'null',
-    });
-
-    const childProcess = command.spawn();
-
-    return {
-        mimeType,
-        stream: childProcess.stdout,
-    };
 }
