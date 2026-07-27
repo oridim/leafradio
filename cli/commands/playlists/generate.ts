@@ -316,7 +316,7 @@ function* walkDirectoryTracks(
 
         yield {
             groupId: dirname(relativePath),
-            id: relativePath,
+            id: path,
             audioProperties,
             musicalFeatures,
         };
