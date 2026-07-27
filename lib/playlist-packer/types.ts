@@ -27,7 +27,11 @@ export interface PackedBuckets {
 export interface Track {
     readonly audioProperties: AudioProperties;
 
-    readonly musicalFeatures: MusicalFeatures;
+    readonly groupId?: string;
 
     readonly id: string;
+
+    readonly musicalFeatures: MusicalFeatures;
+
+    readonly weight?: number;
 }

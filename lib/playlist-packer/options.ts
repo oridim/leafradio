@@ -6,6 +6,7 @@ import type { Track } from '@/lib/playlist-packer/types.ts';
 
 export const DEFAULT_PACK_PLAYLIST_BUCKETS_PARAMETERS = {
     energyCurve: waveEnergyCurve,
+    groupDecayFactor: 0.8,
     maxTracksPerBucket: 0,
     mixingRule: harmonicMixingRule,
     numberOfBuckets: 1,
@@ -24,6 +25,8 @@ export type PackPlaylistBucketsParameters = Omit<
 
 export interface PackPlaylistBucketsOptions {
     readonly energyCurve?: EnergyCurveFunction;
+
+    readonly groupDecayFactor?: number;
 
     readonly maxTracksPerBucket?: number;
 

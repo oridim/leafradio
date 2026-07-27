@@ -20,6 +20,7 @@ interface ScoredTrack {
 }
 
 function fillBucket(
+    groupUsageCounts: Map<string, number>,
     maxTracks: number | undefined,
     scoredPool: ScoredTrack[],
     targetDuration: number,
@@ -36,12 +37,20 @@ function fillBucket(
             continue;
         }
 
+        const { audioProperties, groupId } = track;
+
         const spacingCost = packedTracks.length > 0 ? trackSpacing : 0;
-        const costToPack = track.audioProperties.duration + spacingCost;
+        const costToPack = audioProperties.duration + spacingCost;
 
         if (totalDuration + costToPack <= targetDuration) {
             packedTracks.push(track);
             totalDuration += costToPack;
+
+            if (groupId) {
+                const currentCount = groupUsageCounts.get(groupId) ?? 0;
+
+                groupUsageCounts.set(groupId, currentCount + 1);
+            }
         } else {
             leftovers.push(track);
         }
@@ -56,6 +65,8 @@ function fillBucket(
 
 function scoreAndSortPool(
     pool: Track[],
+    groupDecayFactor: number,
+    groupUsageCounts: Map<string, number>,
     pacingStrictnessArousal: number,
     pacingStrictnessValence: number,
     randomGenerator: RandomNumberGenerator,
@@ -64,6 +75,8 @@ function scoreAndSortPool(
     vibeTarget: number,
 ): ScoredTrack[] {
     return pool.map((track) => {
+        const { groupId, weight = 1.0 } = track;
+
         const baseScore = calculateSuitabilityScore(
             track,
             targetArousal,
@@ -76,9 +89,15 @@ function scoreAndSortPool(
             ? randomGenerator.randomFloat(-scoreFuzziness, scoreFuzziness)
             : 0;
 
+        const groupCount = groupId ? groupUsageCounts.get(groupId) ?? 0 : 0;
+        const groupMultiplier = Math.pow(groupDecayFactor, groupCount);
+
+        const rawScore = Math.max(0, baseScore + fuzz);
+        const finalScore = rawScore * weight * groupMultiplier;
+
         return {
             track,
-            score: baseScore + fuzz,
+            score: finalScore,
         };
     }).sort((scoredTrackA, scoredTrackB) =>
         scoredTrackB.score - scoredTrackA.score
@@ -90,6 +109,7 @@ export function packPlaylistBuckets(
 ): PackedBuckets {
     const {
         energyCurve,
+        groupDecayFactor,
         maxTracksPerBucket,
         mixingRule,
         numberOfBuckets,
@@ -103,8 +123,9 @@ export function packPlaylistBuckets(
         vibeTarget,
     } = { ...DEFAULT_PACK_PLAYLIST_BUCKETS_PARAMETERS, ...options };
 
-    const randomGenerator = makeRandomNumberGenerator(seed);
     const buckets: Bucket[] = [];
+    const groupUsageCounts = new Map<string, number>();
+    const randomGenerator = makeRandomNumberGenerator(seed);
 
     let availablePool = randomGenerator.shuffleElements([...tracks]);
 
@@ -117,6 +138,8 @@ export function packPlaylistBuckets(
 
         const scoredPool = scoreAndSortPool(
             availablePool,
+            groupDecayFactor,
+            groupUsageCounts,
             pacingStrictnessArousal,
             pacingStrictnessValence,
             randomGenerator,
@@ -126,6 +149,7 @@ export function packPlaylistBuckets(
         );
 
         const { packedTracks, leftovers, totalDuration } = fillBucket(
+            groupUsageCounts,
             maxTracksPerBucket,
             scoredPool,
             targetDurationPerBucket,
