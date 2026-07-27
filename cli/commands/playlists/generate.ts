@@ -1,7 +1,7 @@
 import * as CSV from '@std/csv';
 import type { WalkEntry } from '@std/fs';
 import { expandGlob } from '@std/fs';
-import { extname, join, relative, resolve } from '@std/path';
+import { dirname, extname, join, relative, resolve } from '@std/path';
 
 import { Table } from '@cliffy/table';
 import { command, number, positional, string } from '@drizzle-team/brocli';
@@ -315,7 +315,8 @@ function* walkDirectoryTracks(
         const { audioProperties, musicalFeatures } = metadata;
 
         yield {
-            id: path,
+            groupId: dirname(relativePath),
+            id: relativePath,
             audioProperties,
             musicalFeatures,
         };
