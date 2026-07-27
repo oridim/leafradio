@@ -424,7 +424,9 @@ export default command({
             return;
         }
 
-        LOGGER.info(`'${tracks.length}' audio files were included.`);
+        LOGGER.info(
+            `'${tracks.length}' audio files were filtered for possible playlist inclusion.`,
+        );
 
         const { buckets } = packPlaylistBuckets({
             ...parameters,
@@ -437,6 +439,12 @@ export default command({
                             .numberOfBuckets,
                 ),
         });
+
+        const includedTracks = buckets.flatMap((bucket) => bucket.tracks);
+
+        LOGGER.info(
+            `'${includedTracks.length}' audio files included in the playlist.`,
+        );
 
         const formattedOutput = formatOutput(
             outputFormat as OutputFormats,
