@@ -4,9 +4,6 @@
     "license": "MIT",
 
     "compilerOptions": {
-        "jsx": "react-jsx",
-        "jsxImportSource": "@oridim/datastar-serve",
-        "jsxImportSourceTypes": "@oridim/datastar-serve",
         "noFallthroughCasesInSwitch": true,
         "noImplicitOverride": true,
         "noImplicitReturns": true,
