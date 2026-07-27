@@ -93,6 +93,11 @@ const COMMAND_OPTIONS = {
             ...Object.values(ENERGY_CURVE_NAMES) as [string, ...string[]],
         ),
 
+    groupDecayFactor: number('group-decay-factor')
+        .desc(
+            "sets the decay multiplier applied to a track's score for each time its directory is used",
+        ),
+
     maxTracksPerBucket: number('max-tracks-per-bucket')
         .desc('sets the maximum amount of tracks per bucket'),
 
