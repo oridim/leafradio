@@ -44,7 +44,7 @@ run(
     {
         name: 'leafradio',
         version: `v${APPLICATION_VERSION}`,
-        description: 'Leaf Radio application CLI.',
+        description: 'LeafRadio application CLI.',
         globals: GLOBAL_OPTIONS,
 
         hook: (event, _command, options) => {
