@@ -24,13 +24,15 @@ export default command({
 
     handler: async ({ audioDataFile, directoryPath }) => {
         const resolvedDirectoryPath = resolve(directoryPath);
+        const resolvedAudioDataFile = audioDataFile ??
+            join(resolvedDirectoryPath, FILE_NAME_AUDIO_DATA);
 
         LOGGER.info(
-            `Scanning '${directoryPath}'...`,
+            `Scanning '${resolvedDirectoryPath}'...`,
         );
 
         const success = await scanDirectory(
-            audioDataFile ?? join(resolvedDirectoryPath, FILE_NAME_AUDIO_DATA),
+            resolvedAudioDataFile,
             resolvedDirectoryPath,
         );
 
