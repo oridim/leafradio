@@ -66,9 +66,15 @@
     "nodeModulesDir": "auto",
 
     "tasks": {
+        "check": "deno task check:format;deno task check:types;deno task check:lint",
+        "check:format": "deno fmt --check ./",
+        "check:lint": "deno lint ./",
+        "check:types": "deno check ./",
         "cli:compile": "deno compile --allow-read --allow-write --allow-net --allow-run --allow-env --allow-ffi $COMPILE_FLAGS ./cli/mod.ts",
         "cli:compile:linux:x86_64": "COMPILE_FLAGS=\"--output ./dist/leafradio.x86_64-unknown-linux-gnu --target x86_64-unknown-linux-gnu\" deno task cli:compile",
         "cli:run": "deno run --allow-read --allow-write --allow-net --allow-run --allow-env --allow-ffi ./cli/mod.ts",
+        "deps:cache": "deno cache ./cli/mod.ts",
+        "format": "deno fmt ./",
         "serve:run": "deno task cli:run serve"
     }
 }
