@@ -37,40 +37,53 @@ export function resolveSeed(
             .zonedDateTimeISO(timeZone)
             .add(duration)
             .epochMilliseconds;
-    } catch {}
+    } catch {
+        // **HACK:** We are using parsing failures to determine if the input is
+        // the type of input we are trying to parse.
+    }
 
     try {
         return Temporal.Instant
             .from(trimmedInput)
             .epochMilliseconds;
-    } catch {}
+    } catch {
+        // **HACK:** Read above comment.
+    }
 
     try {
         return Temporal.ZonedDateTime
             .from(trimmedInput)
             .epochMilliseconds;
-    } catch {}
+    } catch {
+        // **HACK:** Read above comment.
+    }
 
     try {
         return Temporal.PlainDateTime
             .from(trimmedInput)
             .toZonedDateTime(timeZone)
             .epochMilliseconds;
-    } catch {}
+    } catch {
+        // **HACK:** Read above comment.
+    }
 
     try {
         return Temporal.PlainDateTime
             .from(`${trimmedInput}:00`)
             .toZonedDateTime(timeZone)
             .epochMilliseconds;
-    } catch {}
+    } catch {
+        // **HACK:** Read above comment.
+    }
 
     try {
         return Temporal.PlainDate
             .from(trimmedInput)
             .toZonedDateTime(timeZone)
             .epochMilliseconds;
-    } catch {}
+    } catch {
+        // **HACK:** Read above comment.
+    }
 
     try {
         return Temporal.PlainYearMonth
@@ -78,7 +91,9 @@ export function resolveSeed(
             .toPlainDate({ day: 1 })
             .toZonedDateTime(timeZone)
             .epochMilliseconds;
-    } catch {}
+    } catch {
+        // **HACK:** Read above comment.
+    }
 
     return fnv32a(trimmedInput);
 }
