@@ -17,11 +17,6 @@
         "editor.defaultFormatter": "denoland.vscode-deno"
     },
 
-    "[javascriptreact]": {
-        "editor.formatOnSave": true,
-        "editor.defaultFormatter": "denoland.vscode-deno"
-    },
-
     "[json]": {
         "editor.formatOnSave": true,
         "editor.defaultFormatter": "denoland.vscode-deno"
@@ -38,11 +33,6 @@
     },
 
     "[typescript]": {
-        "editor.formatOnSave": true,
-        "editor.defaultFormatter": "denoland.vscode-deno"
-    },
-
-    "[typescriptreact]": {
         "editor.formatOnSave": true,
         "editor.defaultFormatter": "denoland.vscode-deno"
     },
