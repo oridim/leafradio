@@ -20,24 +20,71 @@ interface ScoredTrack {
 }
 
 function fillBucket(
+    groupDecayFactor: number,
     groupUsageCounts: Map<string, number>,
     maxTracks: number | undefined,
-    scoredPool: ScoredTrack[],
+    scoredTrackPool: ScoredTrack[],
     targetDuration: number,
     trackSpacing: number,
 ): { packedTracks: Track[]; leftovers: Track[]; totalDuration: number } {
     const leftovers: Track[] = [];
     const packedTracks: Track[] = [];
 
+    const remainingScoredTracks = scoredTrackPool
+        .map((scoredTrack) => {
+            const { score, track } = scoredTrack;
+            const { groupId } = track;
+
+            const groupCount = groupId ? groupUsageCounts.get(groupId) ?? 0 : 0;
+
+            return {
+                track,
+                baseScore: score,
+                currentScore: score * Math.pow(groupDecayFactor, groupCount),
+            };
+        })
+        .sort((scoredTrackA, scoredTrackB) =>
+            scoredTrackB.currentScore - scoredTrackA.currentScore
+        );
+
     let totalDuration = 0;
 
-    for (const { track } of scoredPool) {
+    while (remainingScoredTracks.length > 0) {
         if (maxTracks && packedTracks.length >= maxTracks) {
-            leftovers.push(track);
-            continue;
+            leftovers.push(
+                ...remainingScoredTracks.map((item) => item.track),
+            );
+
+            break;
         }
 
+        const candidate = remainingScoredTracks.shift()!;
+
+        const { baseScore, track } = candidate;
         const { audioProperties, groupId } = track;
+
+        const groupCount = groupId ? groupUsageCounts.get(groupId) ?? 0 : 0;
+        const newEffectiveScore = baseScore *
+            Math.pow(groupDecayFactor, groupCount);
+
+        if (
+            remainingScoredTracks.length > 0 &&
+            newEffectiveScore < remainingScoredTracks[0].currentScore
+        ) {
+            candidate.currentScore = newEffectiveScore;
+
+            const insertIndex = remainingScoredTracks.findIndex(
+                (item) => item.currentScore <= newEffectiveScore,
+            );
+
+            if (insertIndex === -1) {
+                remainingScoredTracks.push(candidate);
+            } else {
+                remainingScoredTracks.splice(insertIndex, 0, candidate);
+            }
+
+            continue;
+        }
 
         const spacingCost = packedTracks.length > 0 ? trackSpacing : 0;
         const costToPack = audioProperties.duration + spacingCost;
@@ -47,9 +94,7 @@ function fillBucket(
             totalDuration += costToPack;
 
             if (groupId) {
-                const currentCount = groupUsageCounts.get(groupId) ?? 0;
-
-                groupUsageCounts.set(groupId, currentCount + 1);
+                groupUsageCounts.set(groupId, groupCount + 1);
             }
         } else {
             leftovers.push(track);
@@ -63,10 +108,8 @@ function fillBucket(
     };
 }
 
-function scoreAndSortPool(
-    pool: Track[],
-    groupDecayFactor: number,
-    groupUsageCounts: Map<string, number>,
+function scoreTrackPool(
+    trackPool: Track[],
     pacingStrictnessArousal: number,
     pacingStrictnessValence: number,
     randomGenerator: RandomNumberGenerator,
@@ -74,8 +117,8 @@ function scoreAndSortPool(
     targetArousal: number,
     vibeTarget: number,
 ): ScoredTrack[] {
-    return pool.map((track) => {
-        const { groupId, weight = 1.0 } = track;
+    return trackPool.map((track) => {
+        const { weight = 1.0 } = track;
 
         const baseScore = calculateSuitabilityScore(
             track,
@@ -89,19 +132,13 @@ function scoreAndSortPool(
             ? randomGenerator.randomFloat(-scoreFuzziness, scoreFuzziness)
             : 0;
 
-        const groupCount = groupId ? groupUsageCounts.get(groupId) ?? 0 : 0;
-        const groupMultiplier = Math.pow(groupDecayFactor, groupCount);
-
         const rawScore = Math.max(0, baseScore + fuzz);
-        const finalScore = rawScore * weight * groupMultiplier;
 
         return {
             track,
-            score: finalScore,
+            score: rawScore * weight,
         };
-    }).sort((scoredTrackA, scoredTrackB) =>
-        scoredTrackB.score - scoredTrackA.score
-    );
+    });
 }
 
 export function packPlaylistBuckets(
@@ -136,10 +173,8 @@ export function packPlaylistBuckets(
             energyCurve,
         );
 
-        const scoredPool = scoreAndSortPool(
+        const scoredTrackPool = scoreTrackPool(
             availablePool,
-            groupDecayFactor,
-            groupUsageCounts,
             pacingStrictnessArousal,
             pacingStrictnessValence,
             randomGenerator,
@@ -149,9 +184,10 @@ export function packPlaylistBuckets(
         );
 
         const { packedTracks, leftovers, totalDuration } = fillBucket(
+            groupDecayFactor,
             groupUsageCounts,
             maxTracksPerBucket,
-            scoredPool,
+            scoredTrackPool,
             targetDurationPerBucket,
             trackSpacing,
         );
