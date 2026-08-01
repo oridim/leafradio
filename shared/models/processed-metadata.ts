@@ -1,10 +1,44 @@
-import type { AudioProperties } from '@/lib/playlist-packer/mod.ts';
-import type { MusicalFeatures } from '@/lib/music/mod.ts';
+import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-export interface ProcessedMetadata {
-    readonly pcmHash: string;
+export const SCHEMA_PROCESSED_METADATA = {
+    type: 'object',
 
-    readonly audioProperties: AudioProperties;
+    additionalProperties: false,
+    required: ['pcmHash', 'audioProperties', 'musicalFeatures'],
 
-    readonly musicalFeatures: MusicalFeatures;
-}
+    properties: {
+        pcmHash: { type: 'string' },
+
+        audioProperties: {
+            type: 'object',
+
+            additionalProperties: false,
+            required: ['duration'],
+
+            properties: {
+                duration: { type: 'number' },
+            },
+        },
+
+        musicalFeatures: {
+            type: 'object',
+
+            additionalProperties: false,
+            required: ['arousal', 'bpm', 'key', 'valence'],
+
+            properties: {
+                arousal: { type: 'number' },
+
+                bpm: { type: 'number' },
+
+                key: { type: 'string' },
+
+                valence: { type: 'number' },
+            },
+        },
+    },
+} as const satisfies JSONSchema;
+
+export type ProcessedMetadata = Readonly<
+    FromSchema<typeof SCHEMA_PROCESSED_METADATA>
+>;

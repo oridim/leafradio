@@ -15,6 +15,7 @@
     "npm:@drizzle-team/brocli@0.12": "0.12.0",
     "npm:audio@^2.6.8": "2.6.8",
     "npm:consola@^3.4.2": "3.4.2",
+    "npm:json-schema-to-ts@^3.1.1": "3.1.1",
     "npm:m3u-parser-generator@^5.0.2": "5.0.2",
     "npm:meyda@^5.6.3": "5.6.3",
     "npm:ohash@^2.0.11": "2.0.11",
@@ -754,6 +755,9 @@
         "window-function"
       ]
     },
+    "@babel/runtime@7.29.7": {
+      "integrity": "sha512-Nq8OhGWiZIZGV6hLHoyAKLLcJihP/xFeBMGJoUrxTX2psI8dCifzLhZISFb+VWS3wFMRDmCGw5R+dOySCqPLhw=="
+    },
     "@drizzle-team/brocli@0.12.0": {
       "integrity": "sha512-mlUE+rZ8CatQekLhnaiN91Iemdd+e2gFKooGlnRB3oPTL3VghLfX24dx7HrzMNeC1JrIB/0kpsfyty3f5HNfxQ=="
     },
@@ -942,6 +946,13 @@
     "isarray@0.0.1": {
       "integrity": "sha512-D2S+3GLxWH+uhrNEcoh/fnmYeP8E8/zHl644d/jdA0g2uyXvy3sb0qxotE+ne0LtccHknQzWwZEzhak7oJ0COQ=="
     },
+    "json-schema-to-ts@3.1.1": {
+      "integrity": "sha512-+DWg8jCJG2TEnpy7kOm/7/AxaYoaRbjVB4LFZLySZlWn8exGs3A4OLJR966cVvU26N7X9TWxl+Jsw7dzAqKT6g==",
+      "dependencies": [
+        "@babel/runtime",
+        "ts-algebra"
+      ]
+    },
     "libflacjs@5.6.0": {
       "integrity": "sha512-ev9pJxcPEkUdQDBd5ywPHEtYe9mGlzLaNwj+sS32IpiOTPnCYQsCPZLR95dAYXix24UICJJwld4D/tZrR0RFbw==",
       "bin": true
@@ -1047,6 +1058,9 @@
     "supports-preserve-symlinks-flag@1.0.0": {
       "integrity": "sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w=="
     },
+    "ts-algebra@2.0.0": {
+      "integrity": "sha512-FPAhNPFMrkwz76P7cdjdmiShwMynZYN6SgOujD1urY4oNm80Ou9oMdmbR45LotcKOXoy7wSmHkRFE6Mxbrhefw=="
+    },
     "tslib@2.8.1": {
       "integrity": "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w=="
     },
@@ -1082,6 +1096,7 @@
       "npm:@drizzle-team/brocli@0.12",
       "npm:audio@^2.6.8",
       "npm:consola@^3.4.2",
+      "npm:json-schema-to-ts@^3.1.1",
       "npm:m3u-parser-generator@^5.0.2",
       "npm:meyda@^5.6.3",
       "npm:ohash@^2.0.11",

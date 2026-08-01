@@ -1,7 +1,24 @@
-export interface AudioFile {
-    readonly filePath: string;
+import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-    readonly lastModified: number;
+export const SCHEMA_AUDIO_FILE = {
+    type: 'object',
 
-    readonly pcmHash: string;
-}
+    additionalProperties: false,
+    required: ['filePath', 'lastModified', 'pcmHash'],
+
+    properties: {
+        filePath: {
+            type: 'string',
+        },
+
+        lastModified: {
+            type: 'number',
+        },
+
+        pcmHash: {
+            type: 'string',
+        },
+    },
+} as const satisfies JSONSchema;
+
+export type AudioFile = Readonly<FromSchema<typeof SCHEMA_AUDIO_FILE>>;

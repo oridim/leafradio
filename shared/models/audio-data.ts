@@ -1,11 +1,32 @@
-import { AudioFile } from '@/shared/models/audio-file.ts';
-import { ProcessedMetadata } from '@/shared/models/processed-metadata.ts';
+import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-interface SerializedAudioData {
-    readonly audioFiles: readonly AudioFile[];
+import type { AudioFile } from '@/shared/models/audio-file.ts';
+import { SCHEMA_AUDIO_FILE } from '@/shared/models/audio-file.ts';
+import type { ProcessedMetadata } from '@/shared/models/processed-metadata.ts';
+import { SCHEMA_PROCESSED_METADATA } from '@/shared/models/processed-metadata.ts';
 
-    readonly processedMetadata: readonly ProcessedMetadata[];
-}
+const SCHEMA_SERIALIZED_AUDIO_DATA = {
+    type: 'object',
+
+    additionalProperties: false,
+    required: ['audioFiles', 'processedMetadata'],
+
+    properties: {
+        audioFiles: {
+            type: 'array',
+            items: SCHEMA_AUDIO_FILE,
+        },
+
+        processedMetadata: {
+            type: 'array',
+            items: SCHEMA_PROCESSED_METADATA,
+        },
+    },
+} as const satisfies JSONSchema;
+
+type SerializedAudioData = Readonly<
+    FromSchema<typeof SCHEMA_SERIALIZED_AUDIO_DATA>
+>;
 
 export interface AudioData {
     readonly audioFiles: Record<string, AudioFile | undefined>;
@@ -39,12 +60,18 @@ export function writeAudioData(
 ): Promise<void> {
     const payload = JSON.stringify(
         {
-            audioFiles: Object
-                .values(audioData.audioFiles)
-                .filter((file) => file !== undefined),
-            processedMetadata: Object
-                .values(audioData.processedMetadata)
-                .filter((metadata) => metadata !== undefined),
+            audioFiles: Object.values(
+                audioData.audioFiles as Record<
+                    string,
+                    AudioFile
+                >,
+            ),
+            processedMetadata: Object.values(
+                audioData.processedMetadata as Record<
+                    string,
+                    ProcessedMetadata
+                >,
+            ),
         } satisfies SerializedAudioData,
     );
 
