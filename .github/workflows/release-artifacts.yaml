@@ -1,0 +1,41 @@
+name: Release Artifacts
+
+on:
+    release:
+        types:
+            - published
+
+jobs:
+    build-and-upload:
+        runs-on: ${{ matrix.os }}
+        strategy:
+            fail-fast: false
+            matrix:
+                os:
+                    - ubuntu-slim
+                    - macOS-14
+                    - windows-2022
+        permissions:
+            contents: write
+        steps:
+            - name: Clone Repository
+              uses: actions/checkout@v4
+            - name: Configure Deno
+              uses: denoland/setup-deno@v2
+              with:
+                  deno-version: 2.9.3
+            - name: Download Dependencies
+              run: deno task deps:cache
+            - name: Build Linux x86-64 CLI
+              if: runner.os == 'Linux'
+              run: deno task cli:compile:linux:x86_64
+            - name: Build macOS x86-64 CLI
+              if: runner.os == 'macOS'
+              run: deno task cli:compile:macos:x86_64
+            - name: Build Windows x86-64 CLI
+              if: runner.os == 'Windows'
+              run: deno task cli:compile:windows:x86_64
+            - name: Upload Artifacts to Release
+              uses: softprops/action-gh-release@v2
+              with:
+                  files: ./dist/*
