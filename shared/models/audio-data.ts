@@ -1,3 +1,5 @@
+import type { Schema } from '@cfworker/json-schema';
+import { Validator } from '@cfworker/json-schema';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import type { AudioFile } from '@/shared/models/audio-file.ts';
@@ -24,6 +26,10 @@ const SCHEMA_SERIALIZED_AUDIO_DATA = {
     },
 } as const satisfies JSONSchema;
 
+const VALIDATOR_SERIALIZED_AUDIO_DATA = new Validator(
+    SCHEMA_SERIALIZED_AUDIO_DATA as JSONSchema as Schema,
+);
+
 type SerializedAudioData = Readonly<
     FromSchema<typeof SCHEMA_SERIALIZED_AUDIO_DATA>
 >;
@@ -35,9 +41,22 @@ export interface AudioData {
 }
 
 export async function readAudioData(filePath: string): Promise<AudioData> {
-    // **TODO:** validation
     const text = await Deno.readTextFile(filePath);
-    const serializedAudioData = JSON.parse(text) as SerializedAudioData;
+    const parsed = JSON.parse(text);
+
+    const validationResult = VALIDATOR_SERIALIZED_AUDIO_DATA.validate(parsed);
+
+    if (!validationResult.valid) {
+        const issues = validationResult.errors
+            .map((error) => `'${error.instanceLocation}' ${error.error}`)
+            .join('; ');
+
+        throw new Error(
+            `bad argument #0 to 'readAudioData' (audio data file '${filePath}' failed schema validation):\n${issues}`,
+        );
+    }
+
+    const serializedAudioData = parsed as SerializedAudioData;
 
     return {
         audioFiles: Object.fromEntries(

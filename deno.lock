@@ -12,6 +12,7 @@
     "jsr:@std/path@^1.1.5": "1.1.6",
     "jsr:@std/streams@^1.0.9": "1.1.1",
     "jsr:@std/streams@^1.1.1": "1.1.1",
+    "npm:@cfworker/json-schema@^4.1.1": "4.1.1",
     "npm:@drizzle-team/brocli@0.12": "0.12.0",
     "npm:audio@^2.6.8": "2.6.8",
     "npm:consola@^3.4.2": "3.4.2",
@@ -758,6 +759,9 @@
     "@babel/runtime@7.29.7": {
       "integrity": "sha512-Nq8OhGWiZIZGV6hLHoyAKLLcJihP/xFeBMGJoUrxTX2psI8dCifzLhZISFb+VWS3wFMRDmCGw5R+dOySCqPLhw=="
     },
+    "@cfworker/json-schema@4.1.1": {
+      "integrity": "sha512-gAmrUZSGtKc3AiBL71iNWxDsyUC5uMaKKGdvzYsBoTW/xi42JQHl7eKV2OYzCUqvc+D2RCcf7EXY2iCyFIk6og=="
+    },
     "@drizzle-team/brocli@0.12.0": {
       "integrity": "sha512-mlUE+rZ8CatQekLhnaiN91Iemdd+e2gFKooGlnRB3oPTL3VghLfX24dx7HrzMNeC1JrIB/0kpsfyty3f5HNfxQ=="
     },
@@ -1093,6 +1097,7 @@
       "jsr:@std/fs@^1.0.24",
       "jsr:@std/path@^1.1.5",
       "jsr:@std/streams@^1.1.1",
+      "npm:@cfworker/json-schema@^4.1.1",
       "npm:@drizzle-team/brocli@0.12",
       "npm:audio@^2.6.8",
       "npm:consola@^3.4.2",
