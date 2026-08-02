@@ -80,13 +80,19 @@ This is to help with deduplication and stable identification through metadata ch
 > [!TIP]
 > It is highly recommended that you **DO NOT** have your audio files mounted as a network share when you scan them. Otherwise, the scanning process with be _much slower_ than it already is.
 
-### 3. Deploy Your Manifest
+### 3. Deploy Your Audio Files + Manifest
+
+You will need to deploy your audio files and audio data file manifest on the same computer that is running Liquidsoap. As that computer will be the one that is generating your playlists and serving up your audio. Both the audio files and the manifest can both be network shared to this computer as all audio processing is complete. I typically just keep the manifest in the same directory as the audio files but this of course can be customized to your needs.
+
+### 4. Generate Your First Playlist
 
 ...
 
-### 4. Dynamically Request a Track
+### 5. Dynamically Request a Track
 
 ...
+
+### 6. (Optional) Cleaning Your Manifest
 
 ## CLI Reference
 
