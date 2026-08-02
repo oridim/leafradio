@@ -100,12 +100,12 @@ LeafRadio will then algorithmically generate you a playlist using the date of th
 ┌───────────┬──────────┬─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 │ Bucket ID │ Duration │ Absolute File Path                                                                                                          │
 ├───────────┼──────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-│ 1         │ 0:03:16  │ /var/home/oridim/Music/Library/Mega Drive - 199XAD/01-08 H.exe.mp3                                                         │
+│ 1         │ 0:03:16  │ /var/home/oridim/Music/Library/Mega Drive - 199XAD/01-08 H.exe.mp3                                                          │
 ├───────────┼──────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-│ 1         │ 0:01:31  │ /var/home/oridim/Music/Library/Ape Inc. - MOTHER/01-24 Wisdom of the World (Queen Mary's Castle).flac                      │
+│ 1         │ 0:01:31  │ /var/home/oridim/Music/Library/Ape Inc. - MOTHER/01-24 Wisdom of the World (Queen Mary's Castle).flac                       │
 ├───────────┼──────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 │ 1         │ 0:02:41  │ /var/home/oridim/Music/Library/Dennaton Games - Hotline Miami/01-16 Daisuke.flac
-# ...
+...
 ```
 
 It should be noted here that LeafRadio is going to recursively scan your audio library for files and then pull their processed metadata from the manifest file. LeafRadio will not just blindly think that all the files in your manifest file is what's available to it.
