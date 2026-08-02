@@ -239,22 +239,22 @@ Flags:
   version for leafradio
 ```
 
-Most of I highly recommend that you use a preset baseline profile to then customize with the algorithm parameters in the CLI options above as-needed. That way you can slowly ease yourself into customizing your playlists to your tastes. Each profile's settings can be found in [`lib/shared/playlist-packer/profiles.ts`](./lib/playlist-packer/profiles.ts) source code file along with their descriptions as comments. I highly recommend the Party Flow profile as a good starting point. It tries to create a dancable playlist that ebbs and flows throughout and uses harmonic mixing to create smooth key transitions over time.
+As you are beginning I highly recommend that you use a preset baseline profile. From there, you can layer on customized algorithm parameters. That way you can slowly ease yourself into customizing your playlists to your tastes. Each profile's settings can be found in [`lib/shared/playlist-packer/profiles.ts`](./lib/playlist-packer/profiles.ts) source code file along with their descriptions. I highly recommend the Party Flow profile as a good starting point. It tries to create a dancable playlist that ebbs and flows throughout and uses harmonic mixing to create smooth key transitions over time.
 
-Aside from mixing your playlists to taste, there are two other algorithm parameters I highly recommend you take a look at: number of buckets and target duration per-bucket. These two parameters _heavily_ affect how LeafRadio sorts through your tracks. Let's start with the number of buckets parameter as that is at the core of how LeafRadio handles playlist generation.
+Aside from tuning your playlists to taste, there are two other algorithm parameters I highly recommend you take a look at: number of buckets and target duration per-bucket. These two parameters _heavily_ affect how LeafRadio sorts through your tracks. Let's start with the number of buckets parameter as that is at the core of how LeafRadio handles playlist generation.
 
-LeafRadio generates a single playlist as its final output artifact. However, the way that LeafRadio's algorithm sees it is that it generates a "macro playlist" made up of "micro playlists," or "buckets." The macro playlist is sorted through a macro energy (that is, arousal) curve that the buckets follow in their placement. Tracks are then pulled from your audio library and scored based on their suitability to the overall pacing of energy and mood (that is, valance). Along with the overall mood target and the bucket's computed mood target that influence that score. By controlling the number of bucket, you can create many independent windows along the macro energy curve to get a greater assortment of track selection that will have their own unique feel.
+LeafRadio generates a single playlist as its final output artifact. However, the way that LeafRadio's algorithm sees that playlist is that it generates a "macro playlist" made up of "micro playlists," or "buckets." The macro playlist is sorted through a macro energy (that is, arousal) curve that the buckets follow in their placement. Tracks are then pulled from your audio library and scored based on their suitability to the overall pacing of energy and mood (that is, valance). Along with the overall mood target and the bucket's computed mood target that influence that score. By controlling the number of bucket, you can create many independent windows along the macro energy curve to get a greater assortment of track selection that will have their own unique feel.
 
-You can greatly tune that further by specifying the target duration per-bucket. This tells LeafRadio to try to greedily fill up individual buckets from the available track selection to that duration without going over. Again, greatly affects the generated playlist as now LeafRadio cannot just pick audio files without considering their impact on the bucket's duration.
+You can greatly tune that further by specifying the target duration per-bucket. This tells LeafRadio to try to greedily fill up individual buckets from the available track selection to that duration without going over. Again, this greatly affects the generated playlist as now LeafRadio cannot just pick audio files without considering their impact on the bucket's duration.
 
 > [!TIP]
-> LeafRadio was inspired by me playing Animal Crossing. And in Animal Crossing each hour of the day has its own unique background music. The impetus of LeafRadio was to make this happen:
+> I got inspired to create LeafRadio while playing Animal Crossing. In Animal Crossing each hour of the day has its own unique background music track. The impetus of LeafRadio was to replicate this effect with a greater variety than one track per-hour.
+>
+> The effect can be replicated by setting the number of buckets and target duration:
 >
 > ```
 > leafradio playlists generate --number-of-buckets 24 --target-duration-per-bucket 3600000 /path/to/audio/library
 > ```
->
-> You can generate your own playlists where every hour has its own unique feel!
 
 ### 6. Dynamically Request a Track
 
