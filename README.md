@@ -19,9 +19,66 @@ Download the [latest release CLI executable](https://github.com/oridim/leafradio
 > [!TIP]
 > The computer that scans your library and runs Liquidsoap can be the same machine. I typically scan my audio library on my laptop as it is CPU intensive. And my server VPSes are much weaker. However you handle that will be dependent on your infrastructure.
 
-### 2. Scan Your Library
+### 2. Scan Your Audio Library
 
-...
+This part is pretty simple. Once you have LeafRadio installed you will need to point it at your audio library to scan it:
+
+```sh
+leafradio scan directory /path/to/audio/library
+```
+
+This will create an "audio data file" manifest which will be located at the directory you provided as `.leafradio.audio-data.json` by default:
+
+```jsonc
+{
+    "audioFiles": [
+        {
+            "filePath": "Alistair Lindsay - DEFCON Soundtrack/01-01 Track1.mp3",
+            "lastModified": 1785464323594,
+            "pcmHash": "71e80d99209883eec842859e0d816b36cd4414b9434025be9a385c29bda0a64f"
+        },
+        {
+            "filePath": "Alistair Lindsay - DEFCON Soundtrack/01-02 Track2.mp3",
+            "lastModified": 1785464323609,
+            "pcmHash": "369d69d808d5433613cae3e3fd0368e3d04ebed673035adb149db9e40bb06f82"
+        }
+        // ...
+    ],
+    "processedMetadata": [
+        {
+            "audioProperties": { "duration": 217459.2970521542 },
+            "musicalFeatures": {
+                "arousal": 0.2939820356380652,
+                "bpm": 118,
+                "key": "B♭m",
+                "valence": 0.4704486425316841
+            },
+            "pcmHash": "369d69d808d5433613cae3e3fd0368e3d04ebed673035adb149db9e40bb06f82"
+        },
+        {
+            "audioProperties": { "duration": 153437.21088435373 },
+            "musicalFeatures": {
+                "arousal": 0.36856818748502745,
+                "bpm": 132,
+                "key": "G♭m",
+                "valence": 0.46221832796328194
+            },
+            "pcmHash": "71e80d99209883eec842859e0d816b36cd4414b9434025be9a385c29bda0a64f"
+        }
+        // ...
+    ]
+}
+```
+
+The directory you provided will be scanned recursive with symlinks being followed for every audio file within it. From there, a files are hashed by their raw decoded PCM data to create a look up of their processed features (duration in seconds, arousal (energy), beats-per-minute (BPM), musical key, and valance (mood) values).
+
+This is to help with deduplication and stable identification through metadata changes. But _more importantly_, this structure of pre-scanning your library makes playlist generation later extremely fast.
+
+> [!TIP]
+> It is highly recommended that you keep all of your audio files that you will deploy as radios in a single directory. You can use symlinks or other similar methods to create views into your library. Because files are stored in the manifest at relative to library directory this allows you to focus on only needing to handle a singular manifest file to deploy.
+
+> [!TIP]
+> It is highly recommended that you **DO NOT** have your audio files mounted as a network share when you scan them. Otherwise, the scanning process with be _much slower_ than it already is.
 
 ### 3. Deploy Your Manifest
 
