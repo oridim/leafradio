@@ -100,11 +100,11 @@ LeafRadio will then algorithmically generate you a playlist using the date of th
 ┌───────────┬──────────┬─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 │ Bucket ID │ Duration │ Absolute File Path                                                                                                          │
 ├───────────┼──────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-│ 1         │ 0:03:16  │ /var/home/novacbn/Music/Library/Mega Drive - 199XAD/01-08 H.exe.mp3                                                         │
+│ 1         │ 0:03:16  │ /var/home/oridim/Music/Library/Mega Drive - 199XAD/01-08 H.exe.mp3                                                         │
 ├───────────┼──────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-│ 1         │ 0:01:31  │ /var/home/novacbn/Music/Library/Ape Inc. - MOTHER/01-24 Wisdom of the World (Queen Mary's Castle).flac                      │
+│ 1         │ 0:01:31  │ /var/home/oridim/Music/Library/Ape Inc. - MOTHER/01-24 Wisdom of the World (Queen Mary's Castle).flac                      │
 ├───────────┼──────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-│ 1         │ 0:02:41  │ /var/home/novacbn/Music/Library/Dennaton Games - Hotline Miami/01-16 Daisuke.flac
+│ 1         │ 0:02:41  │ /var/home/oridim/Music/Library/Dennaton Games - Hotline Miami/01-16 Daisuke.flac
 # ...
 ```
 
@@ -116,7 +116,7 @@ You can also use LeafRadio to generate playlists of different machine-readable f
 ❯ leafradio playlists generate --output-format json ~/Music/Library
 ℹ '10144' audio files were filtered for possible playlist inclusion.
 ℹ '457' audio files included in the playlist.
-[{"bucketID":1,"duration":196468.0045351474,"filePath":"/var/home/novacbn/Music/Library/Mega Drive - 199XAD/01-08 H.exe.mp3"},{"bucketID":1,"duration":91998.48072562358,"filePath":"/var/home/novacbn/Music/Library/Ape Inc. - MOTHER/01-24 Wisdom of the World (Queen Mary's Castle).flac"},{"bucketID":1,"duration":161973.3106575964,"filePath":"/var/home/novacbn/Music/Library/Dennaton Games - Hotline Miami/01-16 Daisuke.flac"}, ...]
+[{"bucketID":1,"duration":196468.0045351474,"filePath":"/var/home/oridim/Music/Library/Mega Drive - 199XAD/01-08 H.exe.mp3"},{"bucketID":1,"duration":91998.48072562358,"filePath":"/var/home/oridim/Music/Library/Ape Inc. - MOTHER/01-24 Wisdom of the World (Queen Mary's Castle).flac"},{"bucketID":1,"duration":161973.3106575964,"filePath":"/var/home/oridim/Music/Library/Dennaton Games - Hotline Miami/01-16 Daisuke.flac"}, ...]
 ```
 
 ```
@@ -124,9 +124,9 @@ You can also use LeafRadio to generate playlists of different machine-readable f
 ℹ '10144' audio files were filtered for possible playlist inclusion.
 ℹ '457' audio files included in the playlist.
 bucketID,duration,filePath
-1,196468.0045351474,/var/home/novacbn/Music/Library/Mega Drive - 199XAD/01-08 H.exe.mp3
-1,91998.48072562358,/var/home/novacbn/Music/Library/Ape Inc. - MOTHER/01-24 Wisdom of the World (Queen Mary's Castle).flac
-1,161973.3106575964,/var/home/novacbn/Music/Library/Dennaton Games - Hotline Miami/01-16 Daisuke.flac
+1,196468.0045351474,/var/home/oridim/Music/Library/Mega Drive - 199XAD/01-08 H.exe.mp3
+1,91998.48072562358,/var/home/oridim/Music/Library/Ape Inc. - MOTHER/01-24 Wisdom of the World (Queen Mary's Castle).flac
+1,161973.3106575964,/var/home/oridim/Music/Library/Dennaton Games - Hotline Miami/01-16 Daisuke.flac
 ...
 ```
 
@@ -137,13 +137,13 @@ bucketID,duration,filePath
 #EXTM3U
 #EXTINF:196,
 #EXTGRP:Bucket 1
-/var/home/novacbn/Music/Library/Mega Drive - 199XAD/01-08 H.exe.mp3
+/var/home/oridim/Music/Library/Mega Drive - 199XAD/01-08 H.exe.mp3
 #EXTINF:91,
 #EXTGRP:Bucket 1
-/var/home/novacbn/Music/Library/Ape Inc. - MOTHER/01-24 Wisdom of the World (Queen Mary's Castle).flac
+/var/home/oridim/Music/Library/Ape Inc. - MOTHER/01-24 Wisdom of the World (Queen Mary's Castle).flac
 #EXTINF:161,
 #EXTGRP:Bucket 1
-/var/home/novacbn/Music/Library/Dennaton Games - Hotline Miami/01-16 Daisuke.flac
+/var/home/oridim/Music/Library/Dennaton Games - Hotline Miami/01-16 Daisuke.flac
 ...
 ```
 
@@ -152,7 +152,109 @@ bucketID,duration,filePath
 
 ### 5. Tuning Playlist Generation
 
-...
+By default, LeafRadio's algorithm parameters are not configured do too much. However, there are a plethora of things for you to customize:
+
+```
+❯ leafradio playlists generate --help
+
+Generates a playlist out of audio files in a directory.
+
+Usage:
+  leafradio playlists generate <directory-path> [flags]
+
+Flags:
+      --allowed-tracks string
+      sets a file (.csv, .json, .m3u, .m3u8) containing tracks to exclusively allow
+
+      --audio-data-file string
+      sets the file to use as the audio data lookup
+
+      --disallowed-tracks string
+      sets a file (.csv, .json, .m3u, .m3u8) containing tracks to exclude
+
+      --output-file string
+      sets the file to output the playlist to
+      
+      --output-format [ csv | human | json | m3u ]
+      sets the format to output the playlist as (default: "human")
+
+      --profile [ aggressiveRelease | cinematicJourney | deepFocus | eclecticDiscovery | euphoricPeak | exerciseClimb | melancholicDrift | nostalgicChill | partyFlow | steadyDrive | windDown ]
+      sets the a preset profile's to use as a baseline
+
+      --energy-curve [ bellEnergyCurve | climbEnergyCurve | descentEnergyCurve | steadyEnergyCurve | valleyEnergyCurve | waveEnergyCurve ]
+      sets the distribution curve forumla to determine track inclusion in a bucket
+
+      --group-decay-factor number
+      sets the decay multiplier applied to a track's score for each time its directory is used
+
+      --max-tracks-per-bucket number
+      sets the maximum amount of tracks per bucket
+      
+      --minimum-duration number
+      sets the minimum duration (in milliseconds) a track requires to be included (default: 0)
+
+      --mixing-rule [ energyBuildUpMixingRule | harmonicMixingRule | strictTempoMixingRule | vibeTransitionMixingRule ]
+      sets the sorting algorithm used to determine track distribution inside of buckets
+
+      --number-of-buckets number
+      sets how many buckets the linked repositories of tracks are split into
+
+      --pacing-strictness-arousal number
+      sets how closely the track distribution must follow the energy curve
+
+      --pacing-strictness-valence number
+      sets how closely the track distribution must follow the vibe target
+
+      --score-fuzziness number
+      sets how exacting a track's scoring must match for inclusion by introducing randomness
+
+      --seed string
+      sets the seed used for the random number generator (default: "1785643200000")
+
+      --target-duration-per-bucket number
+      sets the max possible cumulative duration of individual buckets
+
+      --track-spacing number
+      sets how much time (in milliseconds) is padded between each track in a bucket
+
+      --vibe-target number
+      sets how weighted tracks included from linked repositories towards positive or negative vibes are
+
+      --log-format [ human | jsonl ]
+      sets the logging format
+
+      --log-level [ debug | error | fatal | info | silent | trace | warn ]
+      sets the logging level
+
+      --quiet
+      suppresses non-essential log output
+
+      --verbose
+      enables detailed debug log output
+
+  -h, --help
+  help for playlists generate
+
+  -v, --version
+  version for leafradio
+```
+
+Most of I highly recommend that you use a preset baseline profile to then customize with the algorithm parameters in the CLI options above as-needed. That way you can slowly ease yourself into customizing your playlists to your tastes. Each profile's settings can be found in [`lib/shared/playlist-packer/profiles.ts`](./lib/playlist-packer/profiles.ts) source code file along with their descriptions as comments. I highly recommend the Party Flow profile as a good starting point. It tries to create a dancable playlist that ebbs and flows throughout and uses harmonic mixing to create smooth key transitions over time.
+
+Aside from mixing your playlists to taste, there are two other algorithm parameters I highly recommend you take a look at: number of buckets and target duration per-bucket. These two parameters _heavily_ affect how LeafRadio sorts through your tracks. Let's start with the number of buckets parameter as that is at the core of how LeafRadio handles playlist generation.
+
+LeafRadio generates a single playlist as its final output artifact. However, the way that LeafRadio's algorithm sees it is that it generates a "macro playlist" made up of "micro playlists," or "buckets." The macro playlist is sorted through a macro energy (that is, arousal) curve that the buckets follow in their placement. Tracks are then pulled from your audio library and scored based on their suitability to the overall pacing of energy and mood (that is, valance). Along with the overall mood target and the bucket's computed mood target that influence that score. By controlling the number of bucket, you can create many independent windows along the macro energy curve to get a greater assortment of track selection that will have their own unique feel.
+
+You can greatly tune that further by specifying the target duration per-bucket. This tells LeafRadio to try to greedily fill up individual buckets from the available track selection to that duration without going over. Again, greatly affects the generated playlist as now LeafRadio cannot just pick audio files without considering their impact on the bucket's duration.
+
+> [!TIP]
+> LeafRadio was inspired by me playing Animal Crossing. And in Animal Crossing each hour of the day has its own unique background music. The impetus of LeafRadio was to make this happen:
+>
+> ```
+> leafradio playlists generate --number-of-buckets 24 --target-duration-per-bucket 3600000 /path/to/audio/library
+> ```
+>
+> You can generate your own playlists where every hour has its own unique feel!
 
 ### 6. Dynamically Request a Track
 
