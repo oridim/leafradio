@@ -86,13 +86,81 @@ You will need to deploy your audio files and audio data file manifest on the sam
 
 ### 4. Generate Your First Playlist
 
+Let's next try generating a test playlist. To do so, you simply point LeafRadio at your audio library again:
+
+```sh
+leafradio playlists generate /path/to/audio/library
+```
+
+LeafRadio will then algorithmically generate you a playlist using the date of the current day as the seed:
+
+```
+ℹ '10144' audio files were filtered for possible playlist inclusion.
+ℹ '457' audio files included in the playlist.
+┌───────────┬──────────┬─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Bucket ID │ Duration │ Absolute File Path                                                                                                          │
+├───────────┼──────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ 1         │ 0:03:16  │ /var/home/novacbn/Music/Library/Mega Drive - 199XAD/01-08 H.exe.mp3                                                         │
+├───────────┼──────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ 1         │ 0:01:31  │ /var/home/novacbn/Music/Library/Ape Inc. - MOTHER/01-24 Wisdom of the World (Queen Mary's Castle).flac                      │
+├───────────┼──────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ 1         │ 0:02:41  │ /var/home/novacbn/Music/Library/Dennaton Games - Hotline Miami/01-16 Daisuke.flac
+# ...
+```
+
+It should be noted here that LeafRadio is going to recursively scan your audio library for files and then pull their processed metadata from the manifest file. LeafRadio will not just blindly think that all the files in your manifest file is what's available to it.
+
+You can also use LeafRadio to generate playlists of different machine-readable formats:
+
+```
+❯ leafradio playlists generate --output-format json ~/Music/Library
+ℹ '10144' audio files were filtered for possible playlist inclusion.
+ℹ '457' audio files included in the playlist.
+[{"bucketID":1,"duration":196468.0045351474,"filePath":"/var/home/novacbn/Music/Library/Mega Drive - 199XAD/01-08 H.exe.mp3"},{"bucketID":1,"duration":91998.48072562358,"filePath":"/var/home/novacbn/Music/Library/Ape Inc. - MOTHER/01-24 Wisdom of the World (Queen Mary's Castle).flac"},{"bucketID":1,"duration":161973.3106575964,"filePath":"/var/home/novacbn/Music/Library/Dennaton Games - Hotline Miami/01-16 Daisuke.flac"}, ...]
+```
+
+```
+❯ leafradio playlists generate --output-format csv ~/Music/Library
+ℹ '10144' audio files were filtered for possible playlist inclusion.
+ℹ '457' audio files included in the playlist.
+bucketID,duration,filePath
+1,196468.0045351474,/var/home/novacbn/Music/Library/Mega Drive - 199XAD/01-08 H.exe.mp3
+1,91998.48072562358,/var/home/novacbn/Music/Library/Ape Inc. - MOTHER/01-24 Wisdom of the World (Queen Mary's Castle).flac
+1,161973.3106575964,/var/home/novacbn/Music/Library/Dennaton Games - Hotline Miami/01-16 Daisuke.flac
+...
+```
+
+```
+❯ leafradio playlists generate --output-format m3u ~/Music/Library
+[LeafRadio] ℹ '10144' audio files were filtered for possible playlist inclusion.
+[LeafRadio] ℹ '457' audio files included in the playlist.
+#EXTM3U
+#EXTINF:196,
+#EXTGRP:Bucket 1
+/var/home/novacbn/Music/Library/Mega Drive - 199XAD/01-08 H.exe.mp3
+#EXTINF:91,
+#EXTGRP:Bucket 1
+/var/home/novacbn/Music/Library/Ape Inc. - MOTHER/01-24 Wisdom of the World (Queen Mary's Castle).flac
+#EXTINF:161,
+#EXTGRP:Bucket 1
+/var/home/novacbn/Music/Library/Dennaton Games - Hotline Miami/01-16 Daisuke.flac
+...
+```
+
+> [!TIP]
+> The M3U format is a standard format that most music tools dealing in playlists conventionally support.
+
+### 5. Tuning Playlist Generation
+
 ...
 
-### 5. Dynamically Request a Track
+### 6. Dynamically Request a Track
 
 ...
 
-### 6. (Optional) Cleaning Your Manifest
+### 7. (Optional) Cleaning Your Manifest
+
+...
 
 ## CLI Reference
 
