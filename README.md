@@ -5,6 +5,32 @@
 > [!WARNING]
 > This software is a personal project that is in development for powering the track selection of my private internet radios. LeafRadio is not a harden battle-tested software package that can be deployed in production without elbow grease.
 
+## Usage
+
+LeafRadio is a simple-to-use CLI software written in TypeScript for the Deno runtime. It is _not_ a daemon nor server that you program other software like internet radios to communicate with. Everything happens through standard input and output pipes. You will need to integrate LeafRadio manually with your choice of internet radio package. For this run through we will be using the [Liquidsoap](https://www.liquidsoap.info) scriptable internet radio as the integration target of choice. As that is what is currently powering my private internet radios.
+
+> [!CAUTION]
+> This is not a guide in how to use Liquidsoap. Please see [Liquidsoap's documentation](https://www.liquidsoap.info/doc.html) for help in using Liquidsoap.
+
+### 1. Install LeafRadio
+
+Download the [latest release CLI executable](https://github.com/oridim/leafradio/releases/latest) from GitHub Releases for your platform. The CLI will need to be available globally on computer that scans your library and the computer that runs Liquidsoap.
+
+> [!TIP]
+> The computer that scans your library and runs Liquidsoap can be the same machine. I typically scan my audio library on my laptop as it is CPU intensive. And my server VPSes are much weaker. However you handle that will be dependent on your infrastructure.
+
+### 2. Scan Your Library
+
+...
+
+### 3. Deploy Your Manifest
+
+...
+
+### 4. Dynamically Request a Track
+
+...
+
 ## CLI Reference
 
 **`leafradio --help`**
