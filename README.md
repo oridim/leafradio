@@ -256,9 +256,76 @@ You can greatly tune that further by specifying the target duration per-bucket. 
 > leafradio playlists generate --number-of-buckets 24 --target-duration-per-bucket 3600000 /path/to/audio/library
 > ```
 
-### 6. Dynamically Request a Track
+### 6. Integrating Liquidsoap
 
-...
+> [!TIP]
+> Any and all Liquidsoap code and settings I give you here is purely for demonstration purposes. Please adapt my code style and values to your preferences as you see fit.
+
+Creating an algorithmically tuned internet radio with Liquidsoap is straight-forward. You only really need to really use the [`playlist`](https://www.liquidsoap.info/doc-2.4.5/reference.html#playlist) and [`process.run`](https://www.liquidsoap.info/doc-2.4.5/reference.html#process.run) functions in Liquidsoap's scripting language. Of course, you can get way more complex from there by using [`request.dynamic`](https://www.liquidsoap.info/doc-2.4.5/reference.html#request.dynamic) to call `leafradio playlists now-playing` when the next track needs to be queued. But the basics are to generate a playlist on initialization and then to consume it in Liquidsoap.
+
+So, to start, we need to define an encoder and assign it to a variable. For my HD audio stream I use an Opus encoder at 128k bitrate. As that encoding is highly efficient and at 128k it is relatively transparent to my ears in sound quality. We just need to use the [`ogg`](https://www.liquidsoap.info/doc-2.4.5/encoding_formats.html#ogg) / [`%opus`](https://www.liquidsoap.info/doc-2.4.5/encoding_formats.html#vorbis) functions to set up our encoder:
+
+```liq
+opus_audio_enc =
+  %ogg(
+    %opus(
+      vbr = "unconstrained",
+      # **NOTE:** Opus was designed to be highly optimized for voice or general audio
+      # data. So, we need to make sure it's configured for general audio.
+      application = "audio",
+      complexity = 5,
+      signal = "music",
+      max_bandwidth = "full_band",
+      samplerate = 48000,
+      bitrate = 128,
+      frame_size = 20.0
+    )
+  )
+```
+
+Next, you'll want to actually call LeafRadio to generate the playlist via `process.run`:
+
+```liq
+# **NOTE:** I am assuming that you kept the audio data file manifest at the root
+# of your audio library directory. Also, fill in playlist generation settings here.
+process.run(
+  "leafradio playlists generate --output-format m3u --output-file \
+   /tmp/playlist.m3u /path/to/audio/library"
+)
+```
+
+Great! Now whenever your Liquidsoap script is started it will call LeafRadio to generate a new playlist at `/tmp/playlist.m3u`. You can then use `playlist` to load that sucker up as a [source](https://www.liquidsoap.info/doc-2.4.5/sources.html):
+
+```liq
+playlist_source = playlist("/tmp/playlist.m3u")
+```
+
+One quick thing to keep in mind is that playlists are not infallible. Which means in Liquidsoap's terminology is that we could run out of tracks to stream, a file in the playlist could be invalid somehow, etc. We can easily fix that by wrapping out playlist in [`mksafe`](https://www.liquidsoap.info/doc-dev/sources.html#sources-are-not-always-reliable-and-thats-okay):
+
+```liq
+safe_playlist_source = mksafe(playlist_source)
+```
+
+That tells Liquidsoap to just stream silence in any instance where the playlist might fail.
+
+Alright, the last thing we need to do is actually stream our playlist over HTTP! We just need to hook up our playlist source to `output.harbor`:
+
+```liq
+output.harbor(
+  opus_audio_enc,
+  port=8080, 
+  mount="/stream.ogg",
+  ogg_audio_stream
+)
+```
+
+Finally, just save the script as `radio.liq` or something similar and run it with Liquidsoap:
+
+```
+liquidsoap radio.liq
+```
+
+We now have our algorithmically generated playlist being served at [`localhost:8080/stream.ogg`](http://localhost:8080/stream.ogg)! Just visit the URL in a browser or custom URL-enabled audio player like VLC.
 
 ### 7. (Optional) Cleaning Your Manifest
 
