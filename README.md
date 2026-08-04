@@ -329,7 +329,14 @@ We now have our algorithmically generated playlist being served at [`localhost:8
 
 ### 7. (Optional) Cleaning Your Manifest
 
-...
+As you add, remove, and change tracks in your audio library your audio data file manifest will have orphaned entries and become unsorted. In that case, you can use the LeafRadio CLI to purge orphaned entries and resort your manifest:
+
+```
+❯ leafradio scan clean-dataset ~/Music/Library
+ℹ Cleaning dataset '/var/home/oridim/Music/Library/.leafradio.audio-data.json'...
+ℹ Purged '31' audio file(s) and '136' processed metadata entr(y/ies).
+ℹ Clean finished!
+```
 
 ## CLI Reference
 
